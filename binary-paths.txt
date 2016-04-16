@@ -1,0 +1,23 @@
+ping.exe /t 127.0.0.1
+hh.exe /?
+xwizard.exe
+regedit.exe
+cmd.exe /K
+xpsrchvw.exe
+xcopy.exe * /w
+wscript.exe
+netstat.exe -aneft 100
+netsh.exe
+winver.exe
+windowsanytimeupgradeui.exe
+wfs.exe
+waitfor.exe statusready
+verifier.exe
+timeout.exe -1
+soundrecorder.exe
+sndvol.exe
+rasphone.exe
+nslookup.exe
+mstsc.exe
+wmic.exe
+C:\\windows\\system32\\speech\\speechux\\speechuxtutorial.exe

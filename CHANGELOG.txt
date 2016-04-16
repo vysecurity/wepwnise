@@ -1,0 +1,36 @@
+              __________                
+__  _  __ ____\______   \__  _  ______  
+\ \/ \/ // __ \|     ___/\ \/ \/ /    \ 
+ \     /\  ___/|    |     \     /   |  \
+  \/\_/  \___  >____|      \/\_/|___|  /
+             \/                      \/ 
+========================================
+
+NOTES
+=====
+Basically, Metasploit has the limitation of not being able to have one handler that
+will automatically stage the correct second stage dependent on the architecture calling in.
+
+This made it so I had to use separate LHOST and LPORTs. However, this is good, we can use this
+to direct payloads where we seem fit.
+
+VERSION 0.1 BETA
+================
+Generator
+	* Initial Python Template for Generation
+	* Allows for insertion of binary paths
+	* Allows specification of MsgBox text
+	* Allows you to turn off MsgBox
+	* User can manually select x86 and x64 payloads to use
+	* Ability to change where the payloads call back to individually
+
+Macro Template
+	* Enumeration of EMET protected processes
+	* Automatic Windows architecture enumeration
+	* Automatic Target binary architecture detection
+	* Automatic selection of payload to inject
+	* MsgBox to stop some automated analysis tools
+	* Makes use of my technique to use native VB to inject into an unprotected process
+	* Stops further injection when a successful injection has taken place	(May add a toggle later)
+	* Current relies on %TEMP% directory due to inability to make use of .Exec without a popup
+	* Automatically determines what VBA version to use
