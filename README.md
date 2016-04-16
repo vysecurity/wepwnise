@@ -1,10 +1,4 @@
-              __________<br>
-__  _  __ ____\______   \__  _  ______<br>
-\ \/ \/ // __ \|     ___/\ \/ \/ /    \ <br>
- \     /\  ___/|    |     \     /   |  \<br>
- \/\_/  \___  >____|      \/\_/|___|  /<br>
-            \/                      \/ <br>
-========================================<br>
+wepwn - A generator to weaponize Macro payloads that can evade EMET through native VB migration.<br>
 <br>
 binary-paths.txt: a list of paths you want to inject into<br>
 payload-list.txt: a current list of supported payloads<br>
