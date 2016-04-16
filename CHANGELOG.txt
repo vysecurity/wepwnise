@@ -24,6 +24,8 @@ Generator
 	* User can manually select x86 and x64 payloads to use
 	* Ability to change where the payloads call back to individually
 
+	* Validates IP address (may allow domains at a later stage to be used with reverse_tcp for example)
+
 Macro Template
 	* Enumeration of EMET protected processes
 	* Automatic Windows architecture enumeration
