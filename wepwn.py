@@ -19,8 +19,6 @@ from termcolor import colored
 #
  
 def printBanner():
-	print colored("WePwn v0.1 BETA", "red")
-
 	print colored("              __________", "red")                
 	print colored("__  _  __ ____\______   \__  _  ______", "red")  
 	print colored("\ \/ \/ // __ \|     ___/\ \/ \/ /    \ ", "red")
