@@ -25,6 +25,7 @@ Generator
 	* Ability to change where the payloads call back to individually
 
 	* Validates IP address (may allow domains at a later stage to be used with reverse_tcp for example)
+	* Remind myself to add variable to control virtual alloc space in case some large payloads are used
 
 Macro Template
 	* Enumeration of EMET protected processes
