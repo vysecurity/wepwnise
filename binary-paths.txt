@@ -1,6 +1,5 @@
 ping.exe /t 127.0.0.1
 hh.exe /?
-xwizard.exe
 regedit.exe
 cmd.exe /K
 xpsrchvw.exe

