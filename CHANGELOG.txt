@@ -23,6 +23,7 @@ Generator
 	* Allows you to turn off MsgBox
 	* User can manually select x86 and x64 payloads to use
 	* Ability to change where the payloads call back to individually
+	* Currently does not support spaces in the binary paths due to not parsing double quotes
 
 	* Validates IP address (may allow domains at a later stage to be used with reverse_tcp for example)
 	* Remind myself to add variable to control virtual alloc space in case some large payloads are used
