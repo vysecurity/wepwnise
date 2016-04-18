@@ -158,7 +158,7 @@ prog = Split(progo, " ")
 kk = Replace(prog(0), "\\", "\")
 Dim gg As String
 gg = kk
-pathKK = Replace(pathOf(gg), "\\", "\")
+pathKK = Replace(pathOf(Replace(gg, """", "")), "\\", "\")
 Dim fudgeBool As Boolean
 fudgeBool = False
 For sCount = LBound(smex) To UBound(smex)
