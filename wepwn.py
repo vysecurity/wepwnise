@@ -18,7 +18,7 @@ from termcolor import colored
 # You can modify binary-paths.txt to have a list of your own choice :)
 #
  
-version = "0.2 BETA"
+version = "0.21 BETA"
 
 def printBanner():
 	print colored("              __________", "red")                

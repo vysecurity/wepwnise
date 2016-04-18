@@ -14,6 +14,29 @@ will automatically stage the correct second stage dependent on the architecture 
 This made it so I had to use separate LHOST and LPORTs. However, this is good, we can use this
 to direct payloads where we seem fit.
 
+To-Do List
+==========
+	* If registry path has no "-EAF", we take it as protected. If it has "-EAF" we remove it from the list of bad
+	  paths. Or we do not include it at all.
+	* Add toggle for "stop on successful injection", currently always on so as to reduce noise.
+	* If "stop on successful injection" is off, add --max-inject to limit max number of injections.
+	* Add domains to be allowed in reverse_tcp LHOST. Currently it force validates IP addresses.
+
+VERSION 0.21 BETA
+=================
+Generator
+	* Added ability to recurse directories and use all found binaries within that directory (Slow performance)
+	* Uses a massive cached list from binary-paths.txt of most default Windows binaries
+	* Will loop through Program Files
+	* More accurate injection
+
+Macro Template
+	* Addition of directory recursive search for .exe's at specified paths in directory-paths.txt (Slow performance)
+	* Now uses more accurate registry path to determine regular expressions for EMET protected paths. The
+	  macro will regex a binary's path to the EMET protected path to determine whether EMET will protect it before
+	  attempting injection
+	* Fixed minor errors in quotation usage such as: "C:\Windows\syswow64\ping.exe" /t 127.0.0.1
+
 VERSION 0.1 BETA
 ================
 Generator
