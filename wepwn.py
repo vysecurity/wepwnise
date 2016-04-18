@@ -18,6 +18,8 @@ from termcolor import colored
 # You can modify binary-paths.txt to have a list of your own choice :)
 #
  
+version = "0.2 BETA"
+
 def printBanner():
 	print colored("              __________", "red")                
 	print colored("__  _  __ ____\______   \__  _  ______", "red")  
@@ -25,7 +27,7 @@ def printBanner():
 	print colored(" \     /\  ___/|    |     \     /   |  \\", "red")
 	print colored(" \/\_/  \___  >____|      \/\_/|___|  /", "red")
 	print colored("            \/                      \/ ", "red")
-	print colored("[*] Version 0.1 BETA", "blue")
+	print colored("[*] Version %s" % version, "blue")
 
 def validateIP(ipaddr):
 	vals=ipaddr.split(".")
