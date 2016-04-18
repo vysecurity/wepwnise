@@ -213,6 +213,8 @@ lines1 = ["Private Const PROCESS_ALL_ACCESS = &H1F0FFF\r\n",
 "dwReserved As Long\r\n",
 "End Type\r\n",
 "#End If\r\n",
+
+#IS OFFICE 64 bit
 "Public Function IsOffice64Bit() As Boolean\r\n",
 "Dim lpSystemInfo As SYSTEM_INFO\r\n",
 "Call GetSystemInfo(lpSystemInfo)\r\n",
@@ -221,6 +223,8 @@ lines1 = ["Private Const PROCESS_ALL_ACCESS = &H1F0FFF\r\n",
 "IsOffice64Bit = Not IsOffice64Bit\r\n",
 "End If\r\n",
 "End Function\r\n",
+
+#ISWOW64
 "Public Function IsWow64(handle As Long) As Boolean\r\n",
 "Call IsWow64Process(handle, meh)\r\n",
 "IsWow64 = Not meh\r\n",
@@ -233,6 +237,48 @@ if args.msgbox == True:
 	lines1 += [("MsgBox \"%s\"\r\n" % args.msg)]
 
 lines1 += ["End Function\r\n",
+
+# Directory Stuff
+
+"Public Function TrailingSlash(strFolder As String) As String\r\n",
+"If Len(strFolder) > 0 Then\r\n",
+"If Right(strFolder, 1) = \"\\\" Then\r\n",
+"TrailingSlash = strFolder\r\n",
+"Else\r\n",
+"TrailingSlash = strFolder & \"\\\"\r\n",
+"End If\r\n",
+"End If\r\n",
+"End Function\r\n",
+"Public Function RecursiveDir(colFiles As Collection, strFolder As String, strFileSpec As String, bIncludeSubfolders As Boolean)\r\n",
+"Dim strTemp As String\r\n",
+"Dim colFolders As New Collection\r\n",
+"Dim vFolderName As Variant\r\n",
+"strFolder = TrailingSlash(strFolder)\r\n",
+"On Error Resume Next\r\n",
+"strTemp = Dir(strFolder & strFileSpec)\r\n",
+"Do While strTemp <> vbNullString\r\n",
+"colFiles.Add strFolder & strTemp\r\n",
+"strTemp = Dir\r\n",
+"Loop\r\n",
+"If bIncludeSubfolders Then\r\n",
+"strTemp = Dir(strFolder, vbDirectory)\r\n",
+"Do While strTemp <> vbNullString\r\n",
+"If (strTemp <> \".\") And (strTemp <> \"..\") Then\r\n",
+"If (GetAttr(strFolder & strTemp) And vbDirectory) <> 0 Then\r\n",
+"colFolders.Add strTemp\r\n",
+"End If\r\n",
+"End If\r\n",
+"strTemp = Dir\r\n",
+"Loop\r\n",
+"For Each vFolderName In colFolders\r\n",
+"Call RecursiveDir(colFiles, strFolder & vFolderName, strFileSpec, True)\r\n",
+"Next vFolderName\r\n",
+"End If\r\n",
+"End Function\r\n",
+
+
+
+# GET LIST
 "Public Function getList() As String()\r\n",
 "Dim myList As String\r\n",
 "myList = \"\"\r\n"]
@@ -249,6 +295,8 @@ for p in binPaths:
 
 f.close()
 
+# Rest of GET LIST
+
 lines1 += ["myArray = Split(myList, \",\")\r\n",
 "Dim c As Integer\r\n",
 "Dim list() As String\r\n",
@@ -256,9 +304,26 @@ lines1 += ["myArray = Split(myList, \",\")\r\n",
 "ReDim Preserve list(c)\r\n",
 "list(c) = myArray(c)\r\n",
 "Next\r\n",
+"c = UBound(list)\r\n",
+"Dim colFiles As New Collection\r\n"]
+
+
+f = open('directory-paths.txt','r')
+
+dirPaths = f.readlines()
+
+for p in dirPaths:
+	q = p.replace("\n", "")
+	lines1 += [("RecursiveDir colFiles, \"%s\", \"*.exe\", True\r\n" % q)]
+
+lines1 +=  ["Dim vFile As Variant\r\n",
+"For Each vFile In colFiles\r\n",
+"ReDim Preserve list(c)\r\n",
+"list(c) = vFile\r\n",
+"c = c + 1\r\n",
+"Next vFile\r\n",
 "getList = list\r\n",
 "End Function\r\n",
-
 # PATH OF
 
 "Public Function pathOf(program As String) As String\r\n",
