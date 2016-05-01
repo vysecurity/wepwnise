@@ -32,7 +32,7 @@ def printBanner():
 
 	print colored(data,"red")
 	print colored("Version %s" % version, "yellow")
-	print colored("Author: Vincent Yiu (@vysec)", "yellow")
+	print colored("Author: Vincent Yiu (@vysec, @vysecurity)", "yellow")
 
 def validateIP(ipaddr):
 	vals=ipaddr.split(".")
