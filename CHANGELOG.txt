@@ -21,7 +21,14 @@ To-Do List
 	* Add toggle for "stop on successful injection", currently always on so as to reduce noise.
 	* If "stop on successful injection" is off, add --max-inject to limit max number of injections.
 	* Add domains to be allowed in reverse_tcp LHOST. Currently it force validates IP addresses.
-	* Use CPA in SUSPEND state instead of RUN.
+
+VERSION 0.25 BETA
+=================
+	* Now uses CreateProcessA with dwFlags = 1, in suspended state. Allows use of more binaries that are not protected now, even if we cannot find a way to keep it live.
+Generator
+	* Added code for the CPA calls
+Macro Template
+	* Added code for the CPA calls
 
 VERSION 0.24 BETA
 =================

