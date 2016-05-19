@@ -26,6 +26,11 @@ To-Do List
 	* Make use of x86 payload obfuscation to obfuscate the payload being injected in memory to bypass all memory scanning threat detection mechanisms
 	* Add dynamic space allocation to virtual alloc. Currently larger payloads >1kb might not work.
 
+VERSION 0.26 BETA
+=================
+	* Fixed the payload and generator for non EMET installed systems.
+	* Dynamic memory allocation size
+
 VERSION 0.25 BETA
 =================
 	* Now uses CreateProcessA with dwFlags = 1, in suspended state. Allows use of more binaries that are not protected now, even if we cannot find a way to keep it live.

@@ -23,7 +23,7 @@ from termcolor import colored
 # You can modify binary-paths.txt to have a list of your own choice :)
 #
  
-version = "0.25 BETA"
+version = "0.26 BETA"
 
 def printBanner():
 
