@@ -28,6 +28,7 @@ To-Do List
 	* Add SRP Policy bypass
 	* Make use of x86 payload obfuscation to obfuscate the payload being injected in memory to bypass all memory scanning threat detection mechanisms
 	* reverse_dns_txt stager
+	* Allow x86 office running on x64 system to inject into x64 processes.
 
 VERSION 0.26 BETA
 =================
