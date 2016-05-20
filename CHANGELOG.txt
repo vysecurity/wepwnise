@@ -17,7 +17,25 @@ to direct payloads where we seem fit.
 CobaltStrike Beacon Payloads: Currently, please make sure the process list you are using are 32 bit
 as Beacon payloads are all 32 bit stagers only at the moment. Only HTTP and HTTPS stagers are supported, DNS it not yet supported.
 
-To-Do List
+LIMITATIONS
+===========
+	* Currently x86 office can only inject into x86 processes even when running on an x64 system. This will be fixed later as it is not a priority for a PoC.
+	* Beacon payloads can only work if injecting into x86 processes so use the --INJECT64 FALSE flag to give stability.
+	* Only reverse_https and reverse_http stagers work for Beacon at the moment. reverse_dns_txt will be implemented later.
+	* Raphael Mudge has not given me permission to use his reverse_dns_txt stager so I will write my own.
+
+TESTING
+=======
+	* Main testing is on a x64 Windows 7 machine with x64 office.
+		- Injects fine into x64 processes
+		- Injects fine into x86 processes
+		- No multiple spawn on fail injections
+		- Works as designed
+
+Testing has also been performed on the following:
+	* Windows 8.1 Professional x64 with x86 office (Only injects into x86 processes, fix later date)	
+
+TO-DO LIST
 ==========
 	* If registry path has no "-EAF", we take it as protected. If it has "-EAF" we remove it from the list of bad
 	  paths. Or we do not include it at all.
