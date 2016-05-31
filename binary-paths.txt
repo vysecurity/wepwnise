@@ -1,4 +1,5 @@
 ping.exe /t 127.0.0.1
+C:\Program Files (x86)\EMET 5.5\EMET_Agent.exe
 hh.exe /?
 regedit.exe
 cmd.exe /K
