@@ -48,6 +48,19 @@ TO-DO LIST
 	* reverse_dns_txt stager
 	* Allow x86 office running on x64 system to inject into x64 processes.
 
+VERSION 0.30 BETA
+=================
+	* Fixed a lot of issues surrounding PtrSafe.
+	* Fixed issues surrounding VBA7 compatibility to use PtrSafe
+	* Fixed issues with data types
+
+Generator
+	* Fixed issues as per above.
+
+Macro Template
+	* Optimization of code usage.
+	
+
 VERSION 0.26 BETA
 =================
 	* Fixed the payload and generator for non EMET installed systems.
