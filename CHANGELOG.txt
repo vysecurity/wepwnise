@@ -48,6 +48,8 @@ TO-DO LIST
 	* reverse_dns_txt stager
 	* Allow x86 office running on x64 system to inject into x64 processes.
 
+	* Automatic Persistence through Templates in Trusted Locations. Auto plant in trusted location.
+
 VERSION 0.30 BETA
 =================
 	* Fixed a lot of issues surrounding PtrSafe.
