@@ -37,6 +37,7 @@ Testing has also been performed on the following:
 
 TO-DO LIST
 ==========
+	* Make Registry enumeration use native WINAPI calls. As WScript.Shell can be blocked via SRP.
 	* If registry path has no "-EAF", we take it as protected. If it has "-EAF" we remove it from the list of bad
 	  paths. Or we do not include it at all.
 	* Add toggle for "stop on successful injection", currently always on so as to reduce noise.
