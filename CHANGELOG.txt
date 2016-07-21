@@ -50,6 +50,13 @@ TO-DO LIST
 	* Allow x86 office running on x64 system to inject into x64 processes.
 
 	* Automatic Persistence through Templates in Trusted Locations. Auto plant in trusted location.
+	* Remove dependency on WScript.Shell for when Wscript.exe is blocked
+	* Automatic obfuscation
+	* Remove dependency on Metasploit Framework
+
+VERSION 0.31 BETA
+=================
+	* Fixed some Type issues on certain installations of office.
 
 VERSION 0.30 BETA
 =================
