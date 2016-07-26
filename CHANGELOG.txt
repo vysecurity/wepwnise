@@ -52,7 +52,12 @@ TO-DO LIST
 	* Automatic Persistence through Templates in Trusted Locations. Auto plant in trusted location.
 	* Remove dependency on WScript.Shell for when Wscript.exe is blocked
 	* Automatic obfuscation
+
+VERSION 0.32 BETA
+=================
+	* Introduced variables -i86 and -i64 to input x86 and x64 shellcode in RAW binary format from a file on disk respectively
 	* Remove dependency on Metasploit Framework
+
 
 VERSION 0.31 BETA
 =================
