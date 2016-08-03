@@ -19,11 +19,8 @@ as Beacon payloads are all 32 bit stagers only at the moment. Only HTTP and HTTP
 
 LIMITATIONS
 ===========
-	* Currently x86 office can only inject into x86 processes even when running on an x64 system. This will be fixed later as it is not a priority for a PoC.
-	* Beacon payloads can only work if injecting into x86 processes so use the --INJECT64 FALSE flag to give stability.
-	* Only reverse_https and reverse_http stagers work for Beacon at the moment. reverse_dns_txt will be implemented later.
-	* Raphael Mudge has not given me permission to use his reverse_dns_txt stager so I will write my own.
-
+	* To work with CobaltStrike, we can now generate .bin shellcode for the Beacon stager in both 32 bit and 64 bit and insert it into the tool.
+	* If WScript.exe is blocked on the host through application whitelisting, it will currently not work. We can bypass this by using native API calls to Reg query commands.
 TESTING
 =======
 	* Main testing is on a x64 Windows 7 machine with x64 office.
