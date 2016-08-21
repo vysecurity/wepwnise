@@ -44,7 +44,8 @@ dragonascent:	CreateProcessA
 What you can do next
 ====================
 
-1. Introduce Aliasing for function names -> Might help
+1. Obfuscate everything else
+2. Remove dependency on wscript.exe and use native registry calls instead
 2. Modularise the attack so you can pick different modules
 3. Don't use binary-paths just make it scan a known directory, this will save space in macro code
 4. More in CHANGELOG.txt TODO list
