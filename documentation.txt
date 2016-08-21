@@ -1,0 +1,50 @@
+wePWNise
+========
+
+-i64: 			input 64 bit raw shellcode
+-i86: 			input 32 bit raw shellcode
+--out:			output file
+--inject64:		When set to false, wePWNise will not attempt to inject into 64 bit processes
+--msgbox:		Set to false to disable messagebox
+--msg:			Messagebox text to display
+binary-paths:		A list of all binaries in scope for injection
+directory-paths:	A list of all directories in scope for scanning for injection. wePWNise will attempt to recursively scan for executable files to inject into
+
+How does it work?
+=================
+1. Launch MessageBox
+2. Wait for click
+3. Obtain list of all binary-paths
+4. Obtain list of all executables in directory-paths
+5. Obtain list of EMET protected paths
+6. Obtain list of $safe = (3) + (4) - (5)
+7. Take safe list and attempt the following injection proccess
+	7.1. Spawn process
+	7.2. Check architecture
+	7.3. Open Handle
+	7.4. Allocate Memory
+	7.5. Write relevant architecture shellcode stager to memory
+	7.6. Create Thread to execute the shellcode
+	7.7. If Process is alive, continue.
+	     If Process is dead, free memory and kill process. Repeat step 7 with next process on $safe list.
+8. Finished
+
+Kernel Function Aliases
+=======================
+bodyslam:	TerminateProcess
+watergun:	VirtualAllocEx
+leechseed:	VirtualFreeEx
+thunderbolt:	WriteProcessMemory
+flamethrower:	CreateRemoteThread
+pokedex:	GetSystemInfo
+cosmicpower:	GetCurrentProcess
+rarecandy:	IsWow64Process
+dragonascent:	CreateProcessA
+
+What you can do next
+====================
+
+1. Introduce Aliasing for function names -> Might help
+2. Modularise the attack so you can pick different modules
+3. Don't use binary-paths just make it scan a known directory, this will save space in macro code
+4. More in CHANGELOG.txt TODO list
